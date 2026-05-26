@@ -1,0 +1,668 @@
+using VillageOfAshes.Core.Entities;
+using VillageOfAshes.Core.Enums;
+using VillageOfAshes.Core.Services;
+
+namespace VillageOfAshes.Infrastructure.Services;
+
+public class DialogueService : IDialogueService
+{
+    private readonly List<Dialogue> _dialogueDatabase;
+
+    public DialogueService()
+    {
+        _dialogueDatabase = InitializeDialogues();
+    }
+
+    public DialogueExchange GenerateDialogue(NPC npc, GameState gameState, DialogueContext context)
+    {
+        var availableDialogues = GetAvailableDialogues(npc, gameState)
+            .Where(d => d.Context == context)
+            .ToList();
+
+        var dialogue = availableDialogues.Any() 
+            ? availableDialogues[new Random().Next(availableDialogues.Count)]
+            : GetDefaultDialogue(context);
+
+        var question = dialogue.Lines.FirstOrDefault() ?? "...";
+        var options = GenerateOptions(npc, gameState, context);
+
+        return new DialogueExchange
+        {
+            Id = Guid.NewGuid().ToString(),
+            NpcId = npc.Id,
+            Question = question,
+            Options = options,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    public void ApplyDialogueEffects(GameState gameState, string npcId, DialogueOption selectedOption)
+    {
+        var npc = gameState.NPCs.FirstOrDefault(n => n.Id == npcId);
+        if (npc == null) return;
+
+        var effects = selectedOption.Effects;
+
+        // Update trust
+        if (!npc.Trust.ContainsKey("player"))
+            npc.Trust["player"] = 50;
+        npc.Trust["player"] = Math.Clamp(npc.Trust["player"] + effects.Trust, 0, 100);
+
+        // Update suspicion
+        if (!npc.Suspicion.ContainsKey("player"))
+            npc.Suspicion["player"] = 0;
+        npc.Suspicion["player"] = Math.Clamp(npc.Suspicion["player"] + effects.Suspicion, 0, 100);
+
+        // Update fear
+        if (!npc.Fear.ContainsKey("player"))
+            npc.Fear["player"] = 0;
+        npc.Fear["player"] = Math.Clamp(npc.Fear["player"] + effects.Fear, 0, 100);
+
+        // Spread rumor if applicable
+        if (effects.SpreadRumor)
+        {
+            var rumor = new Rumor
+            {
+                Id = Guid.NewGuid().ToString(),
+                SourceNpcId = npcId,
+                TargetNpcId = "player",
+                Context = "Suspicious behavior during conversation",
+                Truthfulness = 50,
+                SpreadRate = 40,
+                CreatedAt = DateTime.UtcNow,
+                KnownBy = new List<string> { npcId }
+            };
+            gameState.Rumors.Add(rumor);
+        }
+    }
+
+    public List<Dialogue> GetAvailableDialogues(NPC npc, GameState gameState)
+    {
+        // Remove role-specific filtering - all dialogues available to all NPCs
+        return _dialogueDatabase
+            .Where(d => EvaluateConditions(d.Conditions, npc, gameState))
+            .ToList();
+    }
+
+    public bool EvaluateConditions(List<string> conditions, NPC npc, GameState gameState)
+    {
+        foreach (var condition in conditions)
+        {
+            if (condition.Contains("player_suspicion >"))
+            {
+                var threshold = int.Parse(condition.Split('>')[1].Trim());
+                var suspicion = npc.Suspicion.GetValueOrDefault("player", 0);
+                if (suspicion <= threshold) return false;
+            }
+            else if (condition.Contains("player_trust >"))
+            {
+                var threshold = int.Parse(condition.Split('>')[1].Trim());
+                var trust = npc.Trust.GetValueOrDefault("player", 0);
+                if (trust <= threshold) return false;
+            }
+            else if (condition.Contains("deaths >"))
+            {
+                var threshold = int.Parse(condition.Split('>')[1].Trim());
+                var deaths = gameState.NPCs.Count(n => n.Status == NPCStatus.Dead);
+                if (deaths <= threshold) return false;
+            }
+        }
+        return true;
+    }
+
+    private List<DialogueOption> GenerateOptions(NPC npc, GameState gameState, DialogueContext context)
+    {
+        var options = new List<DialogueOption>();
+
+        switch (context)
+        {
+            case DialogueContext.Suspicious:
+                options.Add(new DialogueOption
+                {
+                    Id = "sus_1",
+                    Text = "I stayed inside my house all night.",
+                    NpcResponse = "I hope that's true. For your sake.",
+                    Effects = new DialogueEffects { Trust = 5, Suspicion = -10 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "sus_2",
+                    Text = "I was walking around. I couldn't sleep.",
+                    NpcResponse = "A lot of people seem to be having trouble sleeping lately. It's a dangerous habit.",
+                    Effects = new DialogueEffects { Suspicion = 5, Trust = 3 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "sus_3",
+                    Text = "That's none of your concern.",
+                    NpcResponse = "In this village, everything is everyone's concern now.",
+                    Effects = new DialogueEffects { Trust = -15, Suspicion = 20, SpreadRumor = true }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "sus_4",
+                    Text = "I could ask you the same question.",
+                    NpcResponse = "I have nothing to hide. Can you say the same?",
+                    Effects = new DialogueEffects { Suspicion = 8, Trust = -5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "sus_5",
+                    Text = "I heard noises and went to investigate.",
+                    NpcResponse = "Curiosity can be fatal these days. Be careful what you go looking for.",
+                    Effects = new DialogueEffects { Suspicion = 3, Trust = 5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "sus_6",
+                    Text = "Why are you so interested in my whereabouts?",
+                    NpcResponse = "Because no one wants to be the next one found in the street.",
+                    Effects = new DialogueEffects { Suspicion = 10, Trust = -8 }
+                });
+                break;
+
+            case DialogueContext.Fearful:
+                options.Add(new DialogueOption
+                {
+                    Id = "fear_1",
+                    Text = "We'll get through this together. Stay calm.",
+                    NpcResponse = "I want to believe you. I really do.",
+                    Effects = new DialogueEffects { Trust = 15, Fear = -10 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "fear_2",
+                    Text = "You should be afraid. We all should.",
+                    NpcResponse = "You're right... there's nowhere safe left.",
+                    Effects = new DialogueEffects { Fear = 15, Trust = -5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "fear_3",
+                    Text = "Panicking won't help anyone.",
+                    NpcResponse = "Easy to say, harder to do when the shadows start moving.",
+                    Effects = new DialogueEffects { Fear = -5, Trust = 8 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "fear_4",
+                    Text = "Have you noticed anything suspicious?",
+                    NpcResponse = "Everything feels suspicious now. Even my own neighbors.",
+                    Effects = new DialogueEffects { Trust = 5, Suspicion = 5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "fear_5",
+                    Text = "Maybe we should leave the village.",
+                    NpcResponse = "And go where? The forest is just as dark as the streets.",
+                    Effects = new DialogueEffects { Fear = 10, Trust = 3 }
+                });
+                break;
+
+            case DialogueContext.Trusting:
+                options.Add(new DialogueOption
+                {
+                    Id = "trust_1",
+                    Text = "Thank you for trusting me. What did you see?",
+                    NpcResponse = "I saw someone near the well. They were carrying something heavy...",
+                    Effects = new DialogueEffects { Trust = 15 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "trust_2",
+                    Text = "I appreciate your honesty. We need allies.",
+                    NpcResponse = "It's good to finally have someone to talk to. It's been lonely with the fear.",
+                    Effects = new DialogueEffects { Trust = 12 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "trust_3",
+                    Text = "Tell me everything you know.",
+                    NpcResponse = "I've noticed Tobias has been acting strange, keeping odd hours...",
+                    Effects = new DialogueEffects { Trust = 10, Suspicion = 3 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "trust_4",
+                    Text = "I have information too. Let's share.",
+                    NpcResponse = "Together, maybe we can piece this puzzle together before it's too late.",
+                    Effects = new DialogueEffects { Trust = 18 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "trust_5",
+                    Text = "Are you sure we can trust each other?",
+                    NpcResponse = "In this place, we have to trust someone, or we'll all go mad alone.",
+                    Effects = new DialogueEffects { Trust = -5, Suspicion = 8 }
+                });
+                break;
+
+            case DialogueContext.Aggressive:
+                options.Add(new DialogueOption
+                {
+                    Id = "agg_1",
+                    Text = "Are you threatening me?",
+                    NpcResponse = "Take it however you want. Just stay out of my way.",
+                    Effects = new DialogueEffects { Suspicion = 15, Trust = -10, Fear = 5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "agg_2",
+                    Text = "Back off. I haven't done anything wrong.",
+                    NpcResponse = "That's what they all say. Until the evidence turns up.",
+                    Effects = new DialogueEffects { Suspicion = 10, Trust = -8 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "agg_3",
+                    Text = "Maybe you're the one we should be watching.",
+                    NpcResponse = "Try it. See what happens when you poke the wrong person.",
+                    Effects = new DialogueEffects { Suspicion = 20, Trust = -15, SpreadRumor = true }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "agg_4",
+                    Text = "Let's calm down and talk rationally.",
+                    NpcResponse = "Rationality died the moment the first body was found.",
+                    Effects = new DialogueEffects { Trust = 5, Fear = -5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "agg_5",
+                    Text = "I don't have to explain myself to you.",
+                    NpcResponse = "You'll have to explain yourself to the council eventually.",
+                    Effects = new DialogueEffects { Suspicion = 18, Trust = -12 }
+                });
+                break;
+
+            case DialogueContext.Rumor:
+                options.Add(new DialogueOption
+                {
+                    Id = "rumor_1",
+                    Text = "Tell me more. Who told you this?",
+                    NpcResponse = "I can't say. But they seemed very sure of what they saw.",
+                    Effects = new DialogueEffects { Trust = 5, SpreadRumor = true }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "rumor_2",
+                    Text = "I heard something similar from someone else.",
+                    NpcResponse = "Then it must be true. We should warn the others.",
+                    Effects = new DialogueEffects { SpreadRumor = true, Suspicion = 5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "rumor_3",
+                    Text = "We shouldn't spread unconfirmed information.",
+                    NpcResponse = "Sometimes rumors are the only truth we have left.",
+                    Effects = new DialogueEffects { Trust = 8, Fear = -3 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "rumor_4",
+                    Text = "That's interesting. I'll keep an eye out.",
+                    NpcResponse = "Do that. The more eyes we have open, the better.",
+                    Effects = new DialogueEffects { Trust = 5, Suspicion = 3 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "rumor_5",
+                    Text = "Sounds like gossip to me.",
+                    NpcResponse = "Gossip can still kill a person in this village.",
+                    Effects = new DialogueEffects { Trust = -5 }
+                });
+                break;
+
+            default: // Neutral
+                options.Add(new DialogueOption
+                {
+                    Id = "neutral_1",
+                    Text = "How are you holding up?",
+                    NpcResponse = "Surviving. That's all any of us can do right now.",
+                    Effects = new DialogueEffects { Trust = 5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "neutral_2",
+                    Text = "Have you seen anything unusual lately?",
+                    NpcResponse = "Everything feels unusual. The air, the shadows... it's all wrong.",
+                    Effects = new DialogueEffects { Suspicion = 3, Trust = 3 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "neutral_3",
+                    Text = "We should stick together in these times.",
+                    NpcResponse = "Allies are hard to come by, but I appreciate the sentiment.",
+                    Effects = new DialogueEffects { Trust = 8 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "neutral_4",
+                    Text = "I'm worried about what's happening here.",
+                    NpcResponse = "We all are. The village is changing into something unrecognizable.",
+                    Effects = new DialogueEffects { Trust = 5, Fear = 5 }
+                });
+                options.Add(new DialogueOption
+                {
+                    Id = "neutral_5",
+                    Text = "Let's talk later. I have things to do.",
+                    NpcResponse = "Understandable. Stay safe out there.",
+                    Effects = new DialogueEffects { Trust = -3 }
+                });
+                break;
+        }
+
+        return options;
+    }
+
+    private Dialogue GetDefaultDialogue(DialogueContext context)
+    {
+        return new Dialogue
+        {
+            Id = "default",
+            Context = context,
+            Lines = new List<string> { "..." },
+            Effects = new DialogueEffects()
+        };
+    }
+
+    private List<Dialogue> InitializeDialogues()
+    {
+        return new List<Dialogue>
+        {
+            // NEUTRAL CONTEXT - Casual conversations
+            new Dialogue
+            {
+                Id = "dlg_neutral_01",
+                Context = DialogueContext.Neutral,
+                Emotion = "Casual",
+                Lines = new List<string> { "Good morning. Another day in this cursed village." },
+                Effects = new DialogueEffects()
+            },
+            new Dialogue
+            {
+                Id = "dlg_neutral_02",
+                Context = DialogueContext.Neutral,
+                Emotion = "Tired",
+                Lines = new List<string> { "I barely slept last night. Did you hear those strange noises?" },
+                Effects = new DialogueEffects { Fear = 5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_neutral_03",
+                Context = DialogueContext.Neutral,
+                Emotion = "Concerned",
+                Lines = new List<string> { "How are you holding up? These are difficult times." },
+                Effects = new DialogueEffects { Trust = 3 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_neutral_04",
+                Context = DialogueContext.Neutral,
+                Emotion = "Weary",
+                Lines = new List<string> { "I can't remember the last time I felt safe here." },
+                Effects = new DialogueEffects { Fear = 3 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_neutral_05",
+                Context = DialogueContext.Neutral,
+                Emotion = "Reflective",
+                Lines = new List<string> { "This village used to be peaceful. What happened to us?" },
+                Effects = new DialogueEffects()
+            },
+            
+            // SUSPICIOUS CONTEXT - Observations without revealing roles
+            new Dialogue
+            {
+                Id = "dlg_suspicious_01",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Questioning",
+                Conditions = new List<string> { "player_suspicion > 40" },
+                Lines = new List<string> { "Where were you last night? I didn't see you at home." },
+                Effects = new DialogueEffects { Suspicion = 10 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_02",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Accusatory",
+                Conditions = new List<string> { "player_suspicion > 50" },
+                Lines = new List<string> { "I saw you near the forest after dark. What were you doing there?" },
+                Effects = new DialogueEffects { Suspicion = 15 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_03",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Doubtful",
+                Conditions = new List<string> { "player_suspicion > 30" },
+                Lines = new List<string> { "Your story doesn't add up. You said you were home, but someone saw you outside." },
+                Effects = new DialogueEffects { Suspicion = 12, Trust = -5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_04",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Observant",
+                Lines = new List<string> { "I noticed you've been avoiding the council meetings. Why is that?" },
+                Effects = new DialogueEffects { Suspicion = 8 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_05",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Wary",
+                Conditions = new List<string> { "player_suspicion > 45" },
+                Lines = new List<string> { "You've been acting strange lately. Is there something you're not telling us?" },
+                Effects = new DialogueEffects { Suspicion = 10 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_06",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Confrontational",
+                Conditions = new List<string> { "player_suspicion > 55" },
+                Lines = new List<string> { "I found blood near your house. Care to explain?" },
+                Effects = new DialogueEffects { Suspicion = 18, Fear = 5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_07",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Investigative",
+                Lines = new List<string> { "Several people mentioned seeing you wandering at night. What's going on?" },
+                Effects = new DialogueEffects { Suspicion = 12 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_08",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Defensive",
+                Conditions = new List<string> { "player_suspicion > 60" },
+                Lines = new List<string> { "Don't think I haven't noticed. You're always around when something bad happens." },
+                Effects = new DialogueEffects { Suspicion = 20, Trust = -10 }
+            },
+            
+            // FEARFUL CONTEXT - Panic and anxiety
+            new Dialogue
+            {
+                Id = "dlg_fearful_01",
+                Context = DialogueContext.Fearful,
+                Emotion = "Panicked",
+                Conditions = new List<string> { "deaths > 0" },
+                Lines = new List<string> { "Someone is killing us! We need to do something before we're all dead!" },
+                Effects = new DialogueEffects { Fear = 15 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_fearful_02",
+                Context = DialogueContext.Fearful,
+                Emotion = "Terrified",
+                Conditions = new List<string> { "deaths > 1" },
+                Lines = new List<string> { "I can't sleep anymore. Every sound makes me jump. Who's next?" },
+                Effects = new DialogueEffects { Fear = 18 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_fearful_03",
+                Context = DialogueContext.Fearful,
+                Emotion = "Desperate",
+                Lines = new List<string> { "We should leave this village. Nothing good will come from staying here." },
+                Effects = new DialogueEffects { Fear = 12 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_fearful_04",
+                Context = DialogueContext.Fearful,
+                Emotion = "Paranoid",
+                Conditions = new List<string> { "deaths > 0" },
+                Lines = new List<string> { "I don't trust anyone anymore. How do we know who the killer is?" },
+                Effects = new DialogueEffects { Fear = 10, Suspicion = 5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_fearful_05",
+                Context = DialogueContext.Fearful,
+                Emotion = "Anxious",
+                Lines = new List<string> { "I heard screaming last night. Did you hear it too?" },
+                Effects = new DialogueEffects { Fear = 8 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_fearful_06",
+                Context = DialogueContext.Fearful,
+                Emotion = "Shaken",
+                Conditions = new List<string> { "deaths > 2" },
+                Lines = new List<string> { "Three people dead already. When will this nightmare end?" },
+                Effects = new DialogueEffects { Fear = 20 }
+            },
+            
+            // TRUSTING CONTEXT - Sharing information
+            new Dialogue
+            {
+                Id = "dlg_trusting_01",
+                Context = DialogueContext.Trusting,
+                Emotion = "Confiding",
+                Conditions = new List<string> { "player_trust > 60" },
+                Lines = new List<string> { "I saw something last night. I think I know who might be involved." },
+                Effects = new DialogueEffects { Trust = 10 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_trusting_02",
+                Context = DialogueContext.Trusting,
+                Emotion = "Relieved",
+                Conditions = new List<string> { "player_trust > 55" },
+                Lines = new List<string> { "I'm glad I can talk to you. I don't know who else to trust." },
+                Effects = new DialogueEffects { Trust = 12 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_trusting_03",
+                Context = DialogueContext.Trusting,
+                Emotion = "Grateful",
+                Conditions = new List<string> { "player_trust > 50" },
+                Lines = new List<string> { "Thank you for being honest with me. We need to stick together." },
+                Effects = new DialogueEffects { Trust = 8 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_trusting_04",
+                Context = DialogueContext.Trusting,
+                Emotion = "Conspiratorial",
+                Conditions = new List<string> { "player_trust > 65" },
+                Lines = new List<string> { "Between you and me, I think I know who we should be watching." },
+                Effects = new DialogueEffects { Trust = 15, Suspicion = 5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_trusting_05",
+                Context = DialogueContext.Trusting,
+                Emotion = "Supportive",
+                Conditions = new List<string> { "player_trust > 70" },
+                Lines = new List<string> { "Whatever happens, I've got your back. We'll figure this out together." },
+                Effects = new DialogueEffects { Trust = 18 }
+            },
+            
+            // AGGRESSIVE CONTEXT - Hostility without revealing role
+            new Dialogue
+            {
+                Id = "dlg_aggressive_01",
+                Context = DialogueContext.Aggressive,
+                Emotion = "Threatening",
+                Conditions = new List<string> { "player_suspicion > 70" },
+                Lines = new List<string> { "You better watch yourself. Accidents happen around here." },
+                Effects = new DialogueEffects { Fear = 15, Suspicion = 15 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_aggressive_02",
+                Context = DialogueContext.Aggressive,
+                Emotion = "Hostile",
+                Conditions = new List<string> { "player_suspicion > 65" },
+                Lines = new List<string> { "Stay away from me. I know what you've been doing." },
+                Effects = new DialogueEffects { Trust = -15, Suspicion = 12 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_aggressive_03",
+                Context = DialogueContext.Aggressive,
+                Emotion = "Angry",
+                Conditions = new List<string> { "player_suspicion > 60" },
+                Lines = new List<string> { "Don't lie to me! I saw you with my own eyes!" },
+                Effects = new DialogueEffects { Suspicion = 18, Trust = -10 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_aggressive_04",
+                Context = DialogueContext.Aggressive,
+                Emotion = "Confrontational",
+                Lines = new List<string> { "You think you're clever, but I'm watching you." },
+                Effects = new DialogueEffects { Suspicion = 10, Fear = 8 }
+            },
+            
+            // RUMOR CONTEXT - Spreading information
+            new Dialogue
+            {
+                Id = "dlg_rumor_01",
+                Context = DialogueContext.Rumor,
+                Emotion = "Gossipy",
+                Lines = new List<string> { "I heard from someone that there was blood found near the church." },
+                Effects = new DialogueEffects { SpreadRumor = true }
+            },
+            new Dialogue
+            {
+                Id = "dlg_rumor_02",
+                Context = DialogueContext.Rumor,
+                Emotion = "Informative",
+                Lines = new List<string> { "People are saying they saw someone sneaking around last night." },
+                Effects = new DialogueEffects { Suspicion = 5, SpreadRumor = true }
+            },
+            new Dialogue
+            {
+                Id = "dlg_rumor_03",
+                Context = DialogueContext.Rumor,
+                Emotion = "Uncertain",
+                Lines = new List<string> { "I'm not sure if it's true, but I heard someone was seen near the victim's house." },
+                Effects = new DialogueEffects { SpreadRumor = true }
+            },
+            new Dialogue
+            {
+                Id = "dlg_rumor_04",
+                Context = DialogueContext.Rumor,
+                Emotion = "Speculative",
+                Lines = new List<string> { "Word is going around that someone's been stealing food at night." },
+                Effects = new DialogueEffects { SpreadRumor = true }
+            },
+            new Dialogue
+            {
+                Id = "dlg_rumor_05",
+                Context = DialogueContext.Rumor,
+                Emotion = "Concerned",
+                Lines = new List<string> { "Everyone's talking about the footprints found near the forest." },
+                Effects = new DialogueEffects { Fear = 5, SpreadRumor = true }
+            }
+        };
+    }
+}

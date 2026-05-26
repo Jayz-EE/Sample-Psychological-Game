@@ -1,0 +1,15 @@
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.csproj.AssemblyReference.cache
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.AssemblyInfoInputs.cache
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.AssemblyInfo.cs
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.csproj.CoreCompileInputs.cache
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/bin/Debug/net10.0/VillageOfAshes.Infrastructure.deps.json
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/bin/Debug/net10.0/VillageOfAshes.Infrastructure.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/bin/Debug/net10.0/VillageOfAshes.Infrastructure.pdb
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/bin/Debug/net10.0/VillageOfAshes.Core.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/bin/Debug/net10.0/VillageOfAshes.Core.pdb
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageO.5864716F.Up2Date
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/refint/VillageOfAshes.Infrastructure.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/VillageOfAshes.Infrastructure.pdb
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/Debug/net10.0/ref/VillageOfAshes.Infrastructure.dll

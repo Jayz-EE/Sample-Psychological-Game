@@ -1,0 +1,11 @@
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/bin/Debug/net10.0/VillageOfAshes.Core.deps.json
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/bin/Debug/net10.0/VillageOfAshes.Core.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/bin/Debug/net10.0/VillageOfAshes.Core.pdb
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.GeneratedMSBuildEditorConfig.editorconfig
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.AssemblyInfoInputs.cache
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.AssemblyInfo.cs
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.csproj.CoreCompileInputs.cache
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/refint/VillageOfAshes.Core.dll
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.pdb
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/ref/VillageOfAshes.Core.dll

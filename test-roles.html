@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Role Mapping Test</title>
+</head>
+<body>
+    <h1>Role Mapping Test</h1>
+    <div id="output"></div>
+    
+    <script>
+        const RoleNames = {
+            0: 'Detective',
+            1: 'Doctor',
+            2: 'Butcher',
+            3: 'Vagabond',
+            4: 'Farmer',
+            5: 'Shopkeeper'
+        };
+
+        const AlignmentNames = {
+            0: 'Good',
+            1: 'Evil',
+            2: 'Neutral'
+        };
+
+        // Test the mapping
+        const testRole = 3;
+        const testAlignment = 2;
+        
+        const roleName = RoleNames[testRole] || testRole;
+        const alignmentName = AlignmentNames[testAlignment] || testAlignment;
+        
+        document.getElementById('output').innerHTML = `
+            <p>Role Number: ${testRole} → Role Name: ${roleName}</p>
+            <p>Alignment Number: ${testAlignment} → Alignment Name: ${alignmentName}</p>
+            <p>Expected: Role 3 = Vagabond, Alignment 2 = Neutral</p>
+            <p style="color: ${roleName === 'Vagabond' && alignmentName === 'Neutral' ? 'green' : 'red'}">
+                ${roleName === 'Vagabond' && alignmentName === 'Neutral' ? '✅ MAPPING WORKS!' : '❌ MAPPING FAILED!'}
+            </p>
+        `;
+    </script>
+</body>
+</html>

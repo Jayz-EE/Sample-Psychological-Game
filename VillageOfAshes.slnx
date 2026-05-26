@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VillageOfAshes.API/VillageOfAshes.API.csproj" />
+    <Project Path="src/VillageOfAshes.Core/VillageOfAshes.Core.csproj" />
+    <Project Path="src/VillageOfAshes.Infrastructure/VillageOfAshes.Infrastructure.csproj" />
+  </Folder>
+</Solution>
