@@ -1,4 +1,5 @@
 using VillageOfAshes.Core.Enums;
+using VillageOfAshes.Core.Services;
 
 namespace VillageOfAshes.Core.Entities;
 
@@ -15,8 +16,13 @@ public class GameState
     public NPC? Player { get; set; }
     public List<Evidence> Evidence { get; set; } = new();
     public List<Rumor> Rumors { get; set; } = new();
+    public List<GameItem> Items { get; set; } = new();
     public List<CouncilRecord> CouncilHistory { get; set; } = new();
     public List<ConversationLog> ConversationLogs { get; set; } = new();
+    public List<string> RecentEvents { get; set; } = new();
+    public List<string> PlayerNotifications { get; set; } = new();
+    public CouncilSession? ActiveCouncil { get; set; }
+    public string? PendingPranksterRevealNpcId { get; set; }
     
     public Dictionary<string, int> VillageResources { get; set; } = new();
     public int VillageFear { get; set; } = 10;
@@ -31,12 +37,30 @@ public class GameState
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 
+public class GameItem
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string UtilityAction { get; set; } = string.Empty;
+    public string OwnerNpcId { get; set; } = string.Empty;
+    public string CurrentHolderId { get; set; } = string.Empty;
+    public string HouseId { get; set; } = string.Empty;
+    public int Value { get; set; } = 2;
+    public bool IsEvilOwned { get; set; }
+    public bool UsableByOwnerOnly { get; set; } = true;
+    public bool IsConsumedOnUse { get; set; }
+}
+
 public class CouncilRecord
 {
     public int Day { get; set; }
     public List<Accusation> Accusations { get; set; } = new();
     public List<Vote> Votes { get; set; } = new();
     public Dictionary<string, int> PublicSuspicion { get; set; } = new();
+    public string? BurnedNpcId { get; set; }
+    public RoleType? RevealedRole { get; set; }
+    public bool RoleRevealTampered { get; set; }
 }
 
 public class Accusation
@@ -44,6 +68,7 @@ public class Accusation
     public string SourceNpcId { get; set; } = string.Empty;
     public string TargetNpcId { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
+    public string Response { get; set; } = string.Empty;
 }
 
 public class Vote

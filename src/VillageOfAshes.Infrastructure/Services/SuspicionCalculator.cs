@@ -82,6 +82,7 @@ public class SuspicionCalculator : ISuspicionCalculator
         return target.Role switch
         {
             RoleType.Vagabond => 25, // Always suspicious
+            RoleType.Prankster => 15,
             RoleType.Butcher => 10,
             RoleType.Detective => -5, // Less suspicious
             _ => 0

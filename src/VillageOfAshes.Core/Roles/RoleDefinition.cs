@@ -52,7 +52,7 @@ public static class RoleDefinitions
                 Alignment = Alignment.Good,
                 Name = "Priest",
                 Description = "Spiritual protection and fear control",
-                DayActions = new() { "BlessHouse", "CalmVillagers", "ConductRitual" },
+                DayActions = new() { "BlessHouse", "CalmVillagers", "ConductRitual", "RemoveCurse" },
                 NightActions = new() { "PurifyArea", "SenseEvilPresence", "NightPrayer" },
                 PassiveAbilities = new() { "CorruptionDetection", "FearControl" },
                 Weaknesses = new() { "TargetedByEvil", "FailedRitualDistrust" }
@@ -144,7 +144,7 @@ public static class RoleDefinitions
                 Alignment = Alignment.GoodNeutral,
                 Name = "Alchemist",
                 Description = "Potion crafting and chemical manipulation",
-                DayActions = new() { "BrewPotions", "BuyIngredients", "SellRemedies" },
+                DayActions = new() { "BrewPotions", "BuyIngredients", "GivePotion", "SellRemedies" },
                 NightActions = new() { "Experiment", "PoisonResources", "DistillElixir" },
                 PassiveAbilities = new() { "PotionUtility", "RandomEffects" },
                 Weaknesses = new() { "ChemicalSuspicion" },
@@ -205,6 +205,20 @@ public static class RoleDefinitions
                 PassiveAbilities = new() { "SecretGathering", "Blackmail" },
                 Weaknesses = new() { "EavesdroppingSuspicion" },
                 WinCondition = "Gather secrets and manipulate factions"
+            }
+        },
+        {
+            RoleType.Prankster, new RoleDefinition
+            {
+                Type = RoleType.Prankster,
+                Alignment = Alignment.EvilNeutral,
+                Name = "Prankster",
+                Description = "Council misdirection and false role reveals",
+                DayActions = new() { "SpreadRumors", "PlantRumors", "ListenToRumors" },
+                NightActions = new() { "SneakAround", "PlantFalseEvidence" },
+                PassiveAbilities = new() { "RoleRevealTamper", "PublicConfusion" },
+                Weaknesses = new() { "LimitedTampering", "CouncilBacklash" },
+                WinCondition = "Confuse two retribution reveals and survive"
             }
         },
         {

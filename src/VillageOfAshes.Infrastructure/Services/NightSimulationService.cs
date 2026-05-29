@@ -10,20 +10,24 @@ public class NightSimulationService : INightSimulationService
     private readonly IObservationService _observationService;
     private readonly IBehaviorAnalysisService _behaviorAnalysisService;
     private readonly ISuspicionCalculator _suspicionCalculator;
+    private readonly INpcDecisionService _npcDecisions;
 
     public NightSimulationService(
         IObservationService observationService,
         IBehaviorAnalysisService behaviorAnalysisService,
-        ISuspicionCalculator suspicionCalculator)
+        ISuspicionCalculator suspicionCalculator,
+        INpcDecisionService npcDecisions)
     {
         _observationService = observationService;
         _behaviorAnalysisService = behaviorAnalysisService;
         _suspicionCalculator = suspicionCalculator;
+        _npcDecisions = npcDecisions;
     }
 
     public async Task<NightSimulationResult> ExecuteNightPhase(GameState gameState)
     {
         var result = new NightSimulationResult();
+        ApplyCurseAndIllnessStates(gameState, result);
         
         // 1. Assign role actions
         var roleActions = AssignRoleActions(gameState);
@@ -51,6 +55,13 @@ public class NightSimulationService : INightSimulationService
         
         // 9. Update NPC states
         UpdateNPCStates(gameState);
+
+        foreach (var evt in result.Events.TakeLast(5))
+            gameState.RecentEvents.Add($"Night {gameState.CurrentDay}: {evt}");
+        if (gameState.RecentEvents.Count > 20)
+            gameState.RecentEvents = gameState.RecentEvents.TakeLast(20).ToList();
+
+        _npcDecisions.RefreshAllNpcSuspicions(gameState);
         
         return result;
     }
@@ -133,6 +144,10 @@ public class NightSimulationService : INightSimulationService
                     roleActions.Add(_random.Next(100) < 50 ? "SpyOnNPC" : "ObserveMeetings");
                     break;
 
+                case RoleType.Prankster:
+                    roleActions.Add(_random.Next(100) < 50 ? "PlantFalseEvidence" : "SneakAround");
+                    break;
+
                 case RoleType.Shopkeeper:
                     roleActions.Add(_random.Next(100) < 60 ? "RecordVisitors" : "LockShop");
                     break;
@@ -210,6 +225,22 @@ public class NightSimulationService : INightSimulationService
                         ExecuteCurseAction(gameState, npc, result);
                         break;
 
+                    case "HarvestFlesh":
+                        // Check action success rate based on Crawler fear
+                        int crawlerFear = GetCrawlerFearForTarget(npc, gameState);
+                        int successRate = Math.Max(0, 100 - crawlerFear);
+                        if (_random.Next(100) < successRate)
+                        {
+                            gameState.VillageCorruption = Math.Min(100, gameState.VillageCorruption + 8);
+                            AddEvidence(result, EvidenceType.Blood, npc.CurrentLocation, npc.Id, 75);
+                            result.Events.Add("Remains were desecrated at night");
+                        }
+                        else
+                        {
+                            result.Events.Add($"{npc.Name} was too afraid to act (Fear: {crawlerFear}%)");
+                        }
+                        break;
+
                     case "PlantFalseEvidence":
                         AddEvidence(result, EvidenceType.RitualMarkings, npc.CurrentLocation, npc.Id, 55);
                         gameState.VillageCorruption = Math.Min(100, gameState.VillageCorruption + 5);
@@ -274,6 +305,7 @@ public class NightSimulationService : INightSimulationService
                     case "StealResources":
                     case "SneakIntoHouses":
                     case "PickpocketNPC":
+                        ExecuteStealItemAction(gameState, npc, result);
                         gameState.EconomyStability = Math.Max(0, gameState.EconomyStability - 5);
                         AddEvidence(result, EvidenceType.BrokenLock, npc.CurrentLocation, npc.Id, 50);
                         break;
@@ -291,35 +323,99 @@ public class NightSimulationService : INightSimulationService
 
     private void ExecuteCurseAction(GameState gameState, NPC actor, NightSimulationResult result)
     {
-        var target = GetRandomTarget(gameState, actor);
+        var target = GetRandomTarget(gameState, actor, NpcTargetIntent.Attack);
         if (target == null) return;
 
+        // Check action success rate based on Crawler fear
+        int crawlerFear = GetCrawlerFearForTarget(actor, gameState);
+        int successRate = Math.Max(0, 100 - crawlerFear);
+        bool actionSucceeds = _random.Next(100) < successRate;
+        
+        if (!actionSucceeds)
+        {
+            result.Events.Add($"{actor.Name} tried to curse but was too afraid (Fear: {crawlerFear}%)");
+            return;
+        }
+
+        var sourceItem = gameState.Items.FirstOrDefault(i =>
+            i.OwnerNpcId == target.Id &&
+            i.CurrentHolderId == actor.Id &&
+            !i.IsEvilOwned);
+        ApplyCurse(gameState, actor, target, result, sourceItem);
+    }
+
+    private void ApplyCurse(GameState gameState, NPC actor, NPC target, NightSimulationResult result, GameItem? sourceItem)
+    {
+        target.IsCursed = true;
+        target.IsIll = target.IllnessSuppressedUntilDay < gameState.CurrentDay;
+        target.CurseSourceItemId = sourceItem?.Id ?? target.CurseSourceItemId;
         target.Fear[actor.Id] = Math.Clamp(target.Fear.GetValueOrDefault(actor.Id, 0) + 25, 0, 100);
-        target.Health = Math.Max(1, target.Health - 10);
+        target.Health = Math.Max(1, target.Health - (target.IsIll ? 18 : 10));
         gameState.VillageCorruption = Math.Min(100, gameState.VillageCorruption + 8);
         AddEvidence(result, EvidenceType.RitualMarkings, target.CurrentLocation, actor.Id, 60);
-        result.Events.Add($"{target.Name} was weakened by a curse");
+        result.Events.Add($"{target.Name} was cursed and fell ill");
+
+        if (target.Id == "player")
+            gameState.PlayerNotifications.Add("🧪 You have been cursed and fallen ill! You feel a dark presence draining your life.");
+
+        if (sourceItem != null && !sourceItem.IsEvilOwned)
+        {
+            target.Status = NPCStatus.Dead;
+            result.Deaths.Add(target.Id);
+            result.Events.Add($"{target.Name}'s own {sourceItem.Name} carried the curse back to them");
+            if (target.Id == "player")
+                gameState.PlayerNotifications.Add($"💀 Your {sourceItem.Name} carried a curse back to you! You have perished.");
+        }
     }
 
     private void ExecuteFearAction(GameState gameState, NPC actor, NightSimulationResult result, EvidenceType trace, string eventText)
     {
-        var target = GetRandomTarget(gameState, actor);
+        var target = GetRandomTarget(gameState, actor, NpcTargetIntent.Attack);
         if (target == null) return;
 
-        target.Fear[actor.Id] = Math.Clamp(target.Fear.GetValueOrDefault(actor.Id, 0) + 20, 0, 100);
+        // Crawler fear action - increases fear by 25
+        target.Fear[actor.Id] = Math.Clamp(target.Fear.GetValueOrDefault(actor.Id, 0) + 25, 0, 100);
         gameState.VillageFear = Math.Min(100, gameState.VillageFear + 8);
         AddEvidence(result, trace, target.CurrentLocation, actor.Id, 50);
         result.Events.Add(eventText);
+
+        if (target.Id == "player")
+            gameState.PlayerNotifications.Add($"😱 You were {eventText.Split(' ').Last()} tonight! Your fear is increasing.");
     }
 
-    private NPC? GetRandomTarget(GameState gameState, NPC actor)
-    {
-        var potentialTargets = gameState.NPCs
-            .Where(n => n.Status == NPCStatus.Alive && n.Id != actor.Id)
-            .Where(n => n.Role != RoleType.Shopkeeper || gameState.ShopkeeperProtectionDays <= 0)
-            .ToList();
+    private NPC? GetRandomTarget(GameState gameState, NPC actor, NpcTargetIntent intent = NpcTargetIntent.Attack) =>
+        _npcDecisions.ChooseTarget(gameState, actor, intent);
 
-        return potentialTargets.Any() ? potentialTargets[_random.Next(potentialTargets.Count)] : null;
+    /// <summary>
+    /// Calculates if an action succeeds based on the actor's fear from Crawlers.
+    /// Success rate = 100% - (Fear from Crawler)
+    /// </summary>
+    private bool IsActionSuccessful(NPC actor)
+    {
+        // Get fear from any Crawler in the game
+        var crawlerFear = actor.Fear.Values.Any() ? actor.Fear.Values.FirstOrDefault(0) : 0;
+        
+        // Action success rate is 100 - crawlerFear
+        int successRate = Math.Max(0, 100 - crawlerFear);
+        return _random.Next(100) < successRate;
+    }
+
+    /// <summary>
+    /// Gets the Crawler fear value for an NPC (fear specifically from Crawler role attacks).
+    /// Searches through all fear entries to find crawler-induced fear.
+    /// </summary>
+    private int GetCrawlerFearForTarget(NPC target, GameState gameState)
+    {
+        // Find the Crawler NPC and get fear value from them
+        var crawlers = gameState.NPCs.Where(n => n.Role == RoleType.Crawler && n.Status == NPCStatus.Alive).ToList();
+        
+        int totalCrawlerFear = 0;
+        foreach (var crawler in crawlers)
+        {
+            totalCrawlerFear += target.Fear.GetValueOrDefault(crawler.Id, 0);
+        }
+        
+        return Math.Min(100, totalCrawlerFear); // Cap at 100
     }
 
     private static void AddEvidence(NightSimulationResult result, EvidenceType type, string location, string createdBy, int visibility)
@@ -338,14 +434,19 @@ public class NightSimulationService : INightSimulationService
 
     private void ExecuteKillAction(GameState gameState, NPC butcher, NightSimulationResult result)
     {
-        var potentialTargets = gameState.NPCs
-            .Where(n => n.Status == NPCStatus.Alive && n.Id != butcher.Id)
-            .Where(n => n.Role != RoleType.Shopkeeper || gameState.ShopkeeperProtectionDays <= 0)
-            .ToList();
-            
-        if (potentialTargets.Any())
+        var target = GetRandomTarget(gameState, butcher, NpcTargetIntent.Attack);
+        if (target != null)
         {
-            var target = potentialTargets[_random.Next(potentialTargets.Count)];
+            // Check action success rate based on Crawler fear
+            int crawlerFear = GetCrawlerFearForTarget(butcher, gameState);
+            int successRate = Math.Max(0, 100 - crawlerFear);
+            bool actionSucceeds = _random.Next(100) < successRate;
+            
+            if (!actionSucceeds)
+            {
+                result.Events.Add($"{butcher.Name} attempted violence but was too afraid (Fear: {crawlerFear}%)");
+                return;
+            }
             
             // Check if target is protected
             var protectors = gameState.NPCs.Where(n => 
@@ -357,7 +458,12 @@ public class NightSimulationService : INightSimulationService
             {
                 target.Status = NPCStatus.Dead;
                 result.Deaths.Add(target.Id);
-                result.Events.Add($"{target.Name} was killed during the night");
+                var deathMessage = $"{target.Name} was killed during the night";
+                result.Events.Add(deathMessage);
+                
+                if (target.Id == "player")
+                    gameState.PlayerNotifications.Add($"💀 You were killed during the night by the {butcher.Role}!");
+
                 _behaviorAnalysisService.RecordBehavior(gameState, butcher.Id, "violent action at night", butcher.CurrentLocation);
                 
                 // Generate blood evidence
@@ -377,37 +483,103 @@ public class NightSimulationService : INightSimulationService
             else
             {
                 result.Events.Add($"{target.Name} was protected during the night");
+                if (target.Id == "player")
+                    gameState.PlayerNotifications.Add("🛡️ Someone tried to kill you, but you were protected!");
             }
         }
     }
 
     private void ExecuteProtectAction(GameState gameState, NPC doctor, NightSimulationResult result)
     {
-        var potentialTargets = gameState.NPCs
-            .Where(n => n.Status == NPCStatus.Alive && n.Id != doctor.Id)
-            .ToList();
-            
-        if (potentialTargets.Any())
+        var target = GetRandomTarget(gameState, doctor, NpcTargetIntent.Protect);
+        if (target != null)
         {
-            var target = potentialTargets[_random.Next(potentialTargets.Count)];
+            // Check action success rate based on Crawler fear
+            int crawlerFear = GetCrawlerFearForTarget(doctor, gameState);
+            int successRate = Math.Max(0, 100 - crawlerFear);
+            bool actionSucceeds = _random.Next(100) < successRate;
+            
+            if (!actionSucceeds)
+            {
+                result.Events.Add($"{doctor.Name} tried to help but was too afraid (Fear: {crawlerFear}%)");
+                return;
+            }
+            
             doctor.NightActions.Add($"Protect:{target.Id}");
             _behaviorAnalysisService.RecordBehavior(gameState, doctor.Id, "helped someone at night", doctor.CurrentLocation);
             result.Events.Add($"{doctor.Name} protected someone during the night");
+
+            if (target.Id == "player")
+                gameState.PlayerNotifications.Add("🛡️ You feel a mysterious presence protecting you tonight.");
+        }
+    }
+
+    private void ApplyCurseAndIllnessStates(GameState gameState, NightSimulationResult result)
+    {
+        var people = gameState.NPCs
+            .Concat(gameState.Player == null ? Enumerable.Empty<NPC>() : new[] { gameState.Player });
+
+        foreach (var npc in people.Where(n => n.Status == NPCStatus.Alive && n.IsCursed))
+        {
+            if (npc.IllnessSuppressedUntilDay < gameState.CurrentDay)
+                npc.IsIll = true;
+
+            if (!npc.IsIll) continue;
+
+            npc.Health = Math.Max(1, npc.Health - 8);
+            result.Events.Add($"{npc.Name}'s cursed illness worsened");
+            
+            if (npc.Id == "player")
+                gameState.PlayerNotifications.Add("🤢 Your cursed illness is getting worse...");
         }
     }
 
     private void ExecuteTrackAction(GameState gameState, NPC detective, NightSimulationResult result)
     {
-        var potentialTargets = gameState.NPCs
-            .Where(n => n.Status == NPCStatus.Alive && n.Id != detective.Id)
-            .ToList();
-            
-        if (potentialTargets.Any())
+        var target = GetRandomTarget(gameState, detective, NpcTargetIntent.Spy);
+        if (target != null)
         {
-            var target = potentialTargets[_random.Next(potentialTargets.Count)];
             detective.KnownFacts.Add($"{target.Name} was at {target.CurrentLocation} during night {gameState.CurrentDay}");
             _behaviorAnalysisService.RecordBehavior(gameState, detective.Id, "tracked movement at night", detective.CurrentLocation);
             result.Events.Add($"{detective.Name} tracked someone's movements");
+            
+            if (target.Id == "player")
+                gameState.PlayerNotifications.Add("👁️ You have a strange feeling that someone was watching you tonight.");
+        }
+    }
+
+    private void ExecuteStealItemAction(GameState gameState, NPC thief, NightSimulationResult result)
+    {
+        // Check action success rate based on Crawler fear
+        int crawlerFear = GetCrawlerFearForTarget(thief, gameState);
+        int successRate = Math.Max(0, 100 - crawlerFear);
+        bool actionSucceeds = _random.Next(100) < successRate;
+        
+        if (!actionSucceeds)
+        {
+            result.Events.Add($"{thief.Name} tried to steal but was too afraid (Fear: {crawlerFear}%)");
+            return;
+        }
+
+        var stealable = gameState.Items
+            .Where(i => i.CurrentHolderId != thief.Id)
+            .OrderBy(_ => _random.Next())
+            .FirstOrDefault();
+        if (stealable == null) return;
+
+        var previousHolder = gameState.NPCs.FirstOrDefault(n => n.Id == stealable.CurrentHolderId)
+            ?? (gameState.Player?.Id == stealable.CurrentHolderId ? gameState.Player : null);
+
+        if (previousHolder != null)
+        {
+            previousHolder.Inventory.Remove(stealable.Name.ToLowerInvariant());
+            stealable.CurrentHolderId = thief.Id;
+            thief.Inventory.Add(stealable.Name.ToLowerInvariant());
+            result.Events.Add($"{thief.Name} stole a personal item during the night");
+            AddEvidence(result, EvidenceType.StolenItems, thief.CurrentLocation, thief.Id, 45);
+
+            if (previousHolder.Id == "player")
+                gameState.PlayerNotifications.Add($"💸 Someone stole your {stealable.Name} during the night!");
         }
     }
 
@@ -496,7 +668,11 @@ public class NightSimulationService : INightSimulationService
         if (aliveNpcs.Count >= 2 && _random.Next(100) < 50)
         {
             var source = aliveNpcs[_random.Next(aliveNpcs.Count)];
-            var target = aliveNpcs.Where(n => n.Id != source.Id).ToList()[_random.Next(aliveNpcs.Count - 1)];
+            var intent = source.Alignment is Alignment.Evil or Alignment.EvilNeutral
+                ? NpcTargetIntent.Frame
+                : NpcTargetIntent.Accuse;
+            var target = _npcDecisions.ChooseTarget(gameState, source, intent)
+                ?? aliveNpcs.First(n => n.Id != source.Id);
             
             // Ambiguous contexts that don't reveal roles
             var contexts = new[] 

@@ -425,6 +425,47 @@
             gap: 14px;
         }
 
+        .council-action-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .council-action-icon-btn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4em;
+            background: rgba(50, 50, 50, 0.8);
+            border: 2px solid #444;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+        }
+
+        .council-action-icon-btn:hover {
+            background: rgba(70, 70, 70, 0.9);
+            border-color: #666;
+        }
+
+        .council-action-icon-btn.active {
+            background: rgba(255, 165, 0, 0.2);
+            border-color: #ffa500;
+            transform: scale(1.05);
+        }
+
+        .council-action-panel {
+            display: none;
+            margin-bottom: 14px;
+        }
+
+        .council-action-panel.active {
+            display: block;
+        }
+
         .council-response-panel {
             display: none;
             margin-bottom: 16px;
@@ -462,6 +503,10 @@
 
         .council-message.announcement {
             border-left-color: #4a9eff;
+        }
+
+        .council-action-icon-btn[data-action="announce"] {
+            display: none;
         }
 
         .council-message.accusation {
@@ -690,6 +735,25 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
+        #notificationList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #notificationList li {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(255, 165, 0, 0.1);
+            border-left: 4px solid #ffa500;
+            border-radius: 4px;
+            color: #eee;
+            font-size: 1.1em;
+        }
+
+        #notificationList li:last-child {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -765,20 +829,20 @@
                     <h2 style="color: #8b0000; margin-bottom: 10px;">📰 Recent Events</h2>
                     <div id="eventLog"></div>
                 </div>
-                
+
                 <div class="panel">
                     <h2>🗺️ Village Status</h2>
                     <div id="villageStatusSummary">
                         <p style="color: #ccc; line-height: 1.6;">
-                            Welcome to the Village of Ashes. A dark presence looms over the community. 
-                            As the days pass, fear and corruption will grow. Manage your resources wisely, 
+                            Welcome to the Village of Ashes. A dark presence looms over the community.
+                            As the days pass, fear and corruption will grow. Manage your resources wisely,
                             build trust with the villagers, and uncover the truth before it's too late.
                         </p>
                         <div style="margin-top: 20px; padding: 15px; background: rgba(139,0,0,0.1); border-radius: 8px; border: 1px solid #8b0000;">
                             <h4 style="color: #ffa500; margin-bottom: 8px;">Nightly Upkeep</h4>
                             <p style="font-size: 0.9em; color: #888;">
-                                Every night, food is consumed from the village supply and your personal stash. 
-                                Hunger leads to health loss. Ensure the Farmer and Butcher are performing their roles, 
+                                Every night, food is consumed from the village supply and your personal stash.
+                                Hunger leads to health loss. Ensure the Farmer and Butcher are performing their roles,
                                 or visit the Shopkeeper to secure your own survival.
                             </p>
                         </div>
@@ -824,7 +888,7 @@
                     <h2>🎭 Your Identity</h2>
                     <div id="playerInfo"></div>
                     <div id="playerAlignmentDisplay" style="margin-top: 5px; font-weight: bold; color: #888;"></div>
-                    
+
                     <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 5px;">
                         <h3 style="color: #ffa500; margin-bottom: 10px;">🎒 Your Resources</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
@@ -844,7 +908,9 @@
                                 <div style="font-size: 0.8em; color: #888;">Meat</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 1.5em;">🎒</div>
+                                <button id="bagButton" style="background: none; border: none; cursor: pointer; font-size: 1.5em;" title="Show Backpack">
+                                    🎒
+                                </button>
                                 <div id="playerItemsDisplay">0</div>
                                 <div style="font-size: 0.8em; color: #888;">Items</div>
                             </div>
@@ -877,26 +943,26 @@
                             <!-- Day Phase Actions (8 AM - 6 PM) -->
                             <div id="dayActions" style="display: none;">
                                 <h3 style="color: #ffa500; font-size: 1em; margin-bottom: 10px;">☀️ Day Phase Actions</h3>
-                                
+
                                 <!-- Visit Shopkeeper (Only if Shopkeeper is Alive) -->
                                 <div id="shopkeeperVisitSection" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px;">
                                     <button class="btn" onclick="visitShopkeeper()" style="width: 100%;">🏪 Visit Shopkeeper</button>
                                 </div>
-                                
+
                                 <!-- Shopkeeper Dead Notice -->
                                 <div id="shopkeeperDeadNotice" style="display: none; margin-bottom: 15px; padding: 10px; background: rgba(139,0,0,0.2); border-radius: 5px; border: 1px solid #8b0000;">
                                     <p style="color: #ff4444; text-align: center; font-style: italic;">
                                         💀 The Shopkeeper is no longer available
                                     </p>
                                 </div>
-                                
+
                                 <!-- Role-Specific Actions -->
                                 <div id="roleSpecificActions"></div>
-                                
+
                                 <!-- General Actions -->
                                 <div style="margin-top: 15px;">
                                     <h4 style="color: #ffa500; font-size: 0.9em; margin-bottom: 10px;">General Actions</h4>
-                                    
+
                                     <!-- Neutral-Specific Strategic Actions -->
                                     <div id="neutralStrategicActions" style="display: none; margin-bottom: 15px; padding: 10px; border: 1px solid #444; border-radius: 5px; background: rgba(139, 165, 0, 0.05);">
                                         <h5 style="color: #ccc; font-size: 0.8em; margin-bottom: 8px;">Strategic Choices</h5>
@@ -916,7 +982,7 @@
                                         <option value="">Investigate NPC...</option>
                                     </select>
                                     <button class="btn" onclick="investigateNPC()" style="margin-top: 10px; width: 100%;">🔍 Investigate</button>
-                                    
+
                                     <select id="rumorTargetSelect" class="action-select" style="margin-top: 10px;">
                                         <option value="">Spread rumor about...</option>
                                     </select>
@@ -957,48 +1023,60 @@
                             <p style="color: #888;">Council forum will appear during council phase (7:00 AM - 8:00 AM)</p>
                         </div>
                     </div>
-                    
+
                     <!-- Council Actions -->
                     <div id="councilForumActions" class="council-side-panel" style="display: none;">
-                        <h3 style="color: #ffa500; margin-bottom: 15px;">Council Strategic Actions</h3>
-                        
-                        <div class="council-action-grid">
-                            <!-- Announce -->
-                            <div class="council-action-card">
-                                <h4 style="color: #4a9eff; margin-bottom: 10px;">📢 Announce</h4>
-                                <textarea id="announceText" placeholder="What do you want to announce?" class="action-input" rows="3"></textarea>
-                                <button class="btn" onclick="makeAnnouncement()" style="width: 100%; margin-top: 10px;">Make Announcement</button>
-                            </div>
-                            
-                            <!-- Accuse -->
-                            <div class="council-action-card">
-                                <h4 style="color: #ff4444; margin-bottom: 10px;">⚖️ Accuse</h4>
-                                <select id="accuseTarget" class="action-select">
-                                    <option value="">Select person to accuse...</option>
-                                </select>
-                                <textarea id="accuseReason" placeholder="Why are you accusing them?" class="action-input" rows="2" style="margin-top: 10px;"></textarea>
-                                <button class="btn" onclick="makeAccusation()" style="width: 100%; margin-top: 10px;">Make Accusation</button>
-                            </div>
-                            
-                            <!-- Raise Suspicion -->
-                            <div class="council-action-card">
-                                <h4 style="color: #ffa500; margin-bottom: 10px;">🔍 Raise Suspicion</h4>
-                                <select id="suspicionTarget" class="action-select">
-                                    <option value="">Select person...</option>
-                                </select>
-                                <textarea id="suspicionReason" placeholder="What suspicious behavior did you notice?" class="action-input" rows="2" style="margin-top: 10px;"></textarea>
-                                <button class="btn" onclick="raiseSuspicion()" style="width: 100%; margin-top: 10px;">Raise Suspicion</button>
-                            </div>
+                        <h3 style="color: #ffa500; margin-bottom: 10px;">Council Strategic Actions</h3>
+                        <p style="font-size: 0.85em; color: #888; margin-bottom: 12px;">Click an icon to open an action.</p>
+
+                        <div class="council-action-icons" role="toolbar" aria-label="Council strategic actions">
+                            <button type="button" class="council-action-icon-btn" data-action="vote" onclick="toggleCouncilStrategicAction('vote')" title="Vote" aria-label="Vote">Vote</button>
+                            <button type="button" class="council-action-icon-btn" data-action="announce" onclick="toggleCouncilStrategicAction('announce')" title="Announce" aria-label="Announce">📢</button>
+                            <button type="button" class="council-action-icon-btn" data-action="accuse" onclick="toggleCouncilStrategicAction('accuse')" title="Accuse" aria-label="Accuse">⚖️</button>
+                            <button type="button" class="council-action-icon-btn" data-action="suspicion" onclick="toggleCouncilStrategicAction('suspicion')" title="Raise Suspicion" aria-label="Raise Suspicion">🔍</button>
+                            <button type="button" class="council-action-icon-btn" data-action="private" onclick="toggleCouncilStrategicAction('private')" title="Private Conversation" aria-label="Private Conversation">💬</button>
                         </div>
-                        
-                        <!-- Personal Conversation Request -->
-                        <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 5px;">
+
+                        <div id="councilAction-announce" class="council-action-panel council-action-card" style="display: none;">
+                            <h4 style="color: #4a9eff; margin-bottom: 10px;">📢 Announce</h4>
+                            <textarea id="announceText" placeholder="What do you want to announce?" class="action-input" rows="3"></textarea>
+                            <button class="btn" onclick="makeAnnouncement()" style="width: 100%; margin-top: 10px;">Make Announcement</button>
+                        </div>
+
+                        <div id="councilAction-accuse" class="council-action-panel council-action-card">
+                            <h4 style="color: #ff4444; margin-bottom: 10px;">⚖️ Accuse</h4>
+                            <select id="accuseTarget" class="action-select">
+                                <option value="">Select person to accuse...</option>
+                            </select>
+                            <textarea id="accuseReason" placeholder="Why are you accusing them?" class="action-input" rows="2" style="margin-top: 10px;"></textarea>
+                            <button class="btn" onclick="makeAccusation()" style="width: 100%; margin-top: 10px;">Make Accusation</button>
+                        </div>
+
+                        <div id="councilAction-suspicion" class="council-action-panel council-action-card">
+                            <h4 style="color: #ffa500; margin-bottom: 10px;">🔍 Raise Suspicion</h4>
+                            <select id="suspicionTarget" class="action-select">
+                                <option value="">Select person...</option>
+                            </select>
+                            <textarea id="suspicionReason" placeholder="What suspicious behavior did you notice?" class="action-input" rows="2" style="margin-top: 10px;"></textarea>
+                            <button class="btn" onclick="raiseSuspicion()" style="width: 100%; margin-top: 10px;">Raise Suspicion</button>
+                        </div>
+
+                        <div id="councilAction-private" class="council-action-panel council-action-card">
                             <h4 style="color: #ffa500; margin-bottom: 10px;">💬 Private Conversation</h4>
                             <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Talking privately moves the conversation to the Private Talk tab.</p>
                             <select id="privateConvoTarget" class="action-select" style="margin-bottom: 10px;">
                                 <option value="">Select person...</option>
                             </select>
                             <button class="btn" onclick="startPrivateConversation()" style="width: 100%;">Start Private Talk</button>
+                        </div>
+                        <div id="councilAction-vote" class="council-action-panel council-action-card">
+                            <h4 style="color: #ff4444; margin-bottom: 10px;">Retribution Vote</h4>
+                            <select id="voteTarget" class="action-select">
+                                <option value="">Select person to burn...</option>
+                            </select>
+                            <button class="btn" onclick="startCouncilVoting()" style="width: 100%; margin-top: 10px;">Open Voting</button>
+                            <button class="btn" onclick="castCouncilVote()" style="width: 100%; margin-top: 10px;">Cast Vote</button>
+                            <button class="btn" onclick="resolveCouncilVoting()" style="width: 100%; margin-top: 10px; background: #8b0000;">End Council Vote</button>
                         </div>
                     </div>
                 </div>
@@ -1016,7 +1094,7 @@
                             <p style="color: #888; text-align: center; margin-top: 50px;">Select someone from the Actions or Council tab to start a private talk.</p>
                         </div>
                     </div>
-                    
+
                     <div id="privateTalkActions" class="council-side-panel" style="display: none; flex: 1;">
                         <h3 style="color: #ffa500; margin-bottom: 15px;">Your Responses</h3>
                         <div id="councilResponseChoices" class="council-response-panel"></div>
@@ -1036,7 +1114,7 @@
             <div class="modal-content">
                 <span class="modal-close" onclick="closeShopkeeper()">&times;</span>
                 <h2 style="color: #8b0000; margin-bottom: 20px;">🏪 Tobias Reed's Shop</h2>
-                
+
                 <div class="resource-display">
                     <div class="resource-item">
                         <div>Your Coins</div>
@@ -1055,8 +1133,27 @@
                         <div class="resource-value" id="playerItems">0</div>
                     </div>
                 </div>
-                
+
                 <div id="shopContent"></div>
+            </div>
+        </div>
+        <div id="backpackModal" class="modal">
+            <div class="modal-content" style="max-width: 400px;">
+                <span class="modal-close" onclick="closeBackpackModal()">&times;</span>
+                <h2 style="color: #8b0000; margin-bottom: 20px;">🎒 Your Backpack</h2>
+                <div id="backpackItemList"></div>
+            </div>
+        </div>
+
+        <!-- Notification Modal -->
+        <div id="notificationModal" class="modal">
+            <div class="modal-content" style="max-width: 500px; border-color: #ffa500;">
+                <span class="modal-close" onclick="closeNotificationModal()">&times;</span>
+                <h2 style="color: #ffa500; margin-bottom: 20px;">⚠️ Event Details</h2>
+                <ul id="notificationList"></ul>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeNotificationModal()" style="background: #ffa500; color: #000;">Understood</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1087,7 +1184,8 @@
             12: 'Hunter',
             13: 'Scholar',
             14: 'Thief',
-            15: 'Voyeur'
+            15: 'Voyeur',
+            16: 'Prankster'
         };
 
         // Alignment enum mapping
@@ -1151,16 +1249,17 @@
             3: ['BegResources', 'TradeRumors', 'SearchScrap'],
             4: ['SowCrops', 'HarvestCrops', 'FertilizeLand'], // Farmer - SellProduce removed (only in shop)
             5: [], // Shopkeeper - TradeResources, SellClues, SpreadRumors only in shop modal
-            6: ['BlessHouse', 'CalmVillagers', 'ConductRitual'],
+            6: ['BlessHouse', 'CalmVillagers', 'ConductRitual', 'RemoveCurse'],
             7: ['PublicAccusation', 'ReviewStatements', 'DemandTestimony'],
             8: ['SpreadFear', 'PlantRumors'],
             9: ['HideInShadows', 'ObserveNPCs'],
             10: ['ManifestBriefly'],
-            11: ['BrewPotions'], // Alchemist - SellRemedies removed (only in shop)
+            11: ['BrewPotions', 'GivePotion'], // Alchemist - SellRemedies removed (only in shop)
             12: ['HuntAnimals', 'IdentifyTraces'], // Hunter - IdentifyTraces conditionally shown
             13: ['AnalyzeRecords', 'StudyPatterns', 'DecodeSymbols'],
             14: ['ScoutHouses'], // Thief - TradeStolenGoods removed (only in shop)
-            15: ['ListenToRumors'] // Voyeur - SellInformation removed (only in shop)
+            15: ['ListenToRumors'], // Voyeur - SellInformation removed (only in shop)
+            16: ['SpreadFear', 'PlantRumors']
         };
 
         const RoleNightActions = {
@@ -1179,7 +1278,8 @@
             12: ['PatrolForest', 'SetTraps', 'FollowSounds'],
             13: ['SecretObservation', 'HiddenResearch'],
             14: ['StealResources', 'SneakIntoHouses', 'PickpocketNPC'],
-            15: ['SpyOnNPC', 'ObserveMeetings']
+            15: ['SpyOnNPC', 'ObserveMeetings'],
+            16: ['SneakAround', 'PlantFalseEvidence']
         };
 
         function openTab(evt, tabName) {
@@ -1360,20 +1460,77 @@
             updatePhaseActions();
             
             updateVillageDiscussions();
+
+            // Check for player notifications
+            if (gameState.playerNotifications && gameState.playerNotifications.length > 0) {
+                showNotificationModal(gameState.playerNotifications);
+            }
+        }
+
+        function showNotificationModal(notifications) {
+            const modal = document.getElementById('notificationModal');
+            const list = document.getElementById('notificationList');
+            
+            list.innerHTML = notifications.map(note => {
+                const isImportant = note.includes('💀') || note.includes('💸') || note.includes('🤕');
+                return `<li class="${isImportant ? 'important' : ''}">${note}</li>`;
+            }).join('');
+            
+            modal.style.display = 'block';
+        }
+
+        async function closeNotificationModal() {
+            document.getElementById('notificationModal').style.display = 'none';
+            
+            // Clear notifications on server
+            try {
+                const response = await fetch(`${API_BASE}/game/clear-notifications`, { method: 'POST' });
+                if (response.ok) {
+                    gameState = await response.json();
+                    // Don't call updateUI here to avoid infinite loop or flickering, 
+                    // but update local state so we don't show it again immediately
+                }
+            } catch (error) {
+                console.error('Error clearing notifications:', error);
+            }
         }
 
         function updateNPCList() {
             const container = document.getElementById('npcList');
             container.innerHTML = '';
 
+            const player = gameState.player;
+            if (!player) return;
+
+            const playerAlignment = player.alignment;
+            const isPlayerEvil = playerAlignment === 1 || (playerAlignment === 4 && player.isGoalCompleted);
+
             gameState.npCs.forEach(npc => {
                 const card = document.createElement('div');
                 const isDead = npc.status === 1;
+                
+                // Visibility Logic:
+                // 1. If NPC role is publicly revealed (e.g. burned at council)
+                // 2. If player is Evil, they can see other Evil (1) and allegianced EvilNeutrals (4)
+                const isEvilAlly = isPlayerEvil && (npc.alignment === 1 || (npc.alignment === 4 && npc.isGoalCompleted));
+                const isPubliclyRevealed = npc.revealedRole !== null && npc.revealedRole !== undefined;
+                
+                let visibleRole = 'Unknown';
+                let roleClass = 'role-unknown';
+
+                if (isPubliclyRevealed) {
+                    visibleRole = `${RoleNames[npc.revealedRole] || npc.revealedRole}${npc.roleRevealTampered ? ' (?)' : ''}`;
+                    roleClass = 'role-revealed';
+                } else if (isEvilAlly) {
+                    visibleRole = RoleNames[npc.role] || npc.role;
+                    roleClass = 'role-ally';
+                }
+
                 card.className = `npc-card ${isDead ? 'dead' : ''}`;
                 
                 card.innerHTML = `
                     <div class="npc-name">${npc.name} ${isDead ? '💀' : ''}</div>
-                    <div class="npc-role">Role: Unknown</div>
+                    <div class="npc-role ${roleClass}">Role: ${visibleRole}</div>
                     <div class="npc-stats">
                         <div class="stat">📍 ${npc.currentLocation || 'Unknown'}</div>
                         <div class="stat">❤️ Health: ${npc.health}</div>
@@ -1504,7 +1661,8 @@
                 'Hunter': 'Track footprints and hunt animals for meat. Protect the village perimeter and use your tracking skills to identify nocturnal movements.',
                 'Scholar': 'Analyze historical records and decode ancient symbols. Study the patterns of the dark influence to find a way to break the cycle of violence.',
                 'Thief': 'Scout houses and steal resources to survive. Trade stolen goods on the black market and stay one step ahead of those who would catch you.',
-                'Voyeur': 'Observe meetings and listen to rumors from afar. Your power lies in the secrets you keep and the information you sell to the highest bidder.'
+                'Voyeur': 'Observe meetings and listen to rumors from afar. Your power lies in the secrets you keep and the information you sell to the highest bidder.',
+                'Prankster': 'Confuse the council, survive suspicion, and alter up to two retribution role reveals when the village burns someone.'
             };
             return objectives[role] || 'Survive, fulfill your thematic role, and navigate the social web of the village to achieve your unique goals.';
         }
@@ -1595,6 +1753,7 @@
             document.getElementById('nightActions').style.display = 'none';
             document.getElementById('otherPhaseActions').style.display = 'none';
             document.getElementById('councilForumActions').style.display = 'none';
+            closeCouncilStrategicActions();
 
             const phase = gameState.currentPhase;
             
@@ -1677,6 +1836,14 @@
                     privateSelect.innerHTML += `<option value="${npc.id}">${npc.name}</option>`;
                 });
             }
+
+            const voteSelect = document.getElementById('voteTarget');
+            if (voteSelect) {
+                voteSelect.innerHTML = '<option value="">Select person to burn...</option>';
+                getAliveVoteTargets().forEach(npc => {
+                    voteSelect.innerHTML += `<option value="${npc.id}">${npc.name}</option>`;
+                });
+            }
             
             // Update council NPC select
             const councilSelect = document.getElementById('councilNpcSelect');
@@ -1693,7 +1860,7 @@
         }
 
         function actionNeedsTarget(action) {
-            return /NPC|Target|Heal|Interrogate|Accusation|Testimony|Rumors|Observe|Scout|Spy|Curse|Stalk|Ambush|Terrorize|Pickpocket|Bless|Diagnose|Treat|Track|SellRemedies|Beg|IdentifyTraces|Protect|Emergency|Secret/.test(action);
+            return /NPC|Target|Heal|Interrogate|Accusation|Testimony|Rumors|Observe|Scout|Spy|Curse|Potion|Stalk|Ambush|Terrorize|Pickpocket|Bless|Diagnose|Treat|Track|SellRemedies|Beg|IdentifyTraces|Protect|Emergency|Secret/.test(action);
         }
 
         function renderRoleActionControls(containerId, actions, mode) {
@@ -1714,7 +1881,7 @@
             // Filter actions based on conditions
             const filteredActions = actions.filter(action => {
                 const isTraceAction = action === 'IdentifyTraces';
-                const isShopkeeperAction = ['TradeResources', 'SellClues', 'SpreadRumors', 'SellProduce', 'SellMeat', 'SellRemedies', 'TradeStolenGoods', 'SellInformation'].includes(action);
+                const isShopkeeperAction = ['TradeResources', 'SellClues', 'SpreadRumors', 'SellProduce', 'SellMeat', 'SellRemedies', 'TradeStolenGoods', 'SellInformation', 'SellPersonalItems'].includes(action);
                 
                 // For Hunter's IdentifyTraces, only show if traces exist
                 if (isTraceAction && !traceOptions) return false;
@@ -1767,7 +1934,10 @@
             if (!gameState || !gameState.player) return;
             const playerRole = gameState.player.role;
             const roleName = RoleNames[playerRole] || 'Unknown';
-            const actions = RoleDayActions[playerRole] || [];
+            const utilityActions = (gameState.player.heldItems || [])
+                .filter(item => item.utilityAction && item.utilityAction !== 'None' && (!item.usableByOwnerOnly || item.ownerNpcId === gameState.player.id))
+                .map(item => item.utilityAction);
+            const actions = [...(RoleDayActions[playerRole] || []), ...utilityActions];
             const container = document.getElementById('roleSpecificActions');
             
             // Check if Hunter has traces available
@@ -2027,6 +2197,10 @@
 
             if (player.role === 11) { // Alchemist
                 sellHTML += `<div class="shop-item"><div class="item-info"><strong>Remedies</strong></div><button class="btn" onclick="shopSellAction('SellRemedies')">Sell</button></div>`;
+            }
+
+            if ((player.heldItems || []).length > 0) {
+                sellHTML += `<div class="shop-item"><div class="item-info"><strong>Personal Items (${player.heldItems.length})</strong><div style="color: #888; font-size: 0.8em;">Utilities and stolen goods</div></div><button class="btn" onclick="shopSellAction('SellPersonalItems')">Sell All</button></div>`;
             }
 
             sellContainer.innerHTML = sellHTML || '<p style="color: #888; font-size: 0.8em; font-style: italic;">Nothing to sell currently</p>';
@@ -2503,6 +2677,12 @@
             return gameState.npCs.filter(npc => npc.status === 0 && npc.id !== playerId && (npc.phaseActionCount ?? 0) < 2);
         }
 
+        function getAliveVoteTargets() {
+            if (!gameState) return [];
+            const playerId = gameState.player?.id || 'player';
+            return gameState.npCs.filter(npc => npc.status === 0 && npc.id !== playerId);
+        }
+
         function getPersonName(personId) {
             if (personId === 'player') return gameState?.player?.name || 'Player';
             const npc = gameState?.npCs?.find(n => n.id === personId);
@@ -2542,7 +2722,7 @@
                     'The council is open. Share village business and keep the record clear.',
                     'Today we settle concerns before rumors start shaping the village.',
                     'Speak plainly. The council record should stay useful.',
-                    'Use this hour for announcements, questions, and private talks.'
+                    'Use this hour for accusations, questions, and private talks.'
                 ];
 
             addCouncilForumMessage({
@@ -2562,7 +2742,58 @@
                     : 'This first council should set the record before rumors take over.'
             }, false);
 
-            if (hasCouncilIncident && gameState.evidence.length > 0 && aliveNPCs.length > 1) {
+            if (gameState.activeCouncil?.statements?.length) {
+                gameState.activeCouncil.statements.forEach(stmt => {
+                    const speaker = aliveNPCs.find(n => n.id === stmt.npcId) || { id: stmt.npcId, name: 'Villager' };
+                    addCouncilForumMessage({
+                        type: 'conversation',
+                        speakerId: speaker.id,
+                        speaker: speaker.name,
+                        text: stmt.statement
+                    }, false);
+                });
+            }
+
+            if (gameState.activeCouncil?.accusations?.length) {
+                gameState.activeCouncil.accusations.forEach(acc => {
+                    const speaker = aliveNPCs.find(n => n.id === acc.sourceNpcId) || { id: acc.sourceNpcId, name: 'Villager' };
+                    const targetName = getPersonName(acc.targetNpcId);
+                    const alibiButtonId = `alibi-${acc.targetNpcId}-${Date.now()}`;
+                    addCouncilForumMessage({
+                        type: 'accusation',
+                        speakerId: speaker.id,
+                        speaker: speaker.name,
+                        target: targetName,
+                        text: acc.reason,
+                        actionHtml: acc.targetNpcId === 'player'
+                            ? `<div class="npc-request-conversation">
+                                <strong>You are accused. Choose your defense:</strong>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                                    <button class="btn" onclick="playerRemainSilent()" style="flex: 1; min-width: 120px; padding: 6px 10px; font-size: 0.9em;">🤐 Silent</button>
+                                    <button class="btn" onclick="togglePlayerAlibiOptions('${alibiButtonId}')" style="flex: 1; min-width: 120px; padding: 6px 10px; font-size: 0.9em;">💬 Claim Role</button>
+                                    <button class="btn" onclick="togglePlayerDefenseOptions('${alibiButtonId}-defense')" style="flex: 1; min-width: 120px; padding: 6px 10px; font-size: 0.9em;">🛡️ Alibi</button>
+                                </div>
+                                <div id="${alibiButtonId}" style="display: none; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                                    <p style="font-size: 0.8em; color: #888; margin-bottom: 8px;">Claim a role (truthfully or as a lie):</p>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                                        <button class="btn" onclick="givePlayerAlibi('I am the Doctor. I save lives, I do not take them.')" style="padding: 4px; font-size: 0.8em;">Doctor</button>
+                                        <button class="btn" onclick="givePlayerAlibi('I am just a Farmer, tending to my crops. This blood is not mine.')" style="padding: 4px; font-size: 0.8em;">Farmer</button>
+                                        <button class="btn" onclick="givePlayerAlibi('I am the Priest. My soul is clean, can you say the same?')" style="padding: 4px; font-size: 0.8em;">Priest</button>
+                                        <button class="btn" onclick="givePlayerAlibi('I am the Scholar, seeking patterns in the madness, not creating it.')" style="padding: 4px; font-size: 0.8em;">Scholar</button>
+                                        <button class="btn" onclick="givePlayerAlibi('I am the Shopkeeper. I serve this village, I do not hunt it.')" style="padding: 4px; font-size: 0.8em;">Shopkeeper</button>
+                                        <button class="btn" onclick="givePlayerAlibi('I am a simple Villager. I want only to survive.')" style="padding: 4px; font-size: 0.8em;">Villager</button>
+                                    </div>
+                                </div>
+                                <div id="${alibiButtonId}-defense" style="display: none; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                                    <button class="btn" onclick="givePlayerAlibi('I was with others and can name where I stood.')" style="width: 100%; margin-bottom: 8px; padding: 6px 10px; font-size: 0.9em;">Public Witness</button>
+                                    <button class="btn" onclick="givePlayerAlibi('My route was routine, and the timing does not match.')" style="width: 100%; margin-bottom: 8px; padding: 6px 10px; font-size: 0.9em;">Timeline Defense</button>
+                                    <button class="btn" onclick="givePlayerAlibi('The accusation is deflection. Ask who benefits from it.')" style="width: 100%; padding: 6px 10px; font-size: 0.9em;">Counter Claim</button>
+                                </div>
+                               </div>`
+                            : `<div class="npc-request-conversation" style="display: flex; gap: 8px; align-items: center; margin-top: 10px;"><button class="btn" onclick="npcRemainSilent('${acc.targetNpcId}')" style="padding: 6px 10px; font-size: 0.85em; flex: 1;">🤐 Silent</button><button class="btn" onclick="requestAlibi('${acc.targetNpcId}', '${escapeHtml(acc.reason)}')" style="padding: 6px 10px; font-size: 0.85em; flex: 1;">💬 Alibi</button></div>`
+                    }, false);
+                });
+            } else if (hasCouncilIncident && gameState.evidence.length > 0 && aliveNPCs.length > 1) {
                 const evidence = gameState.evidence[gameState.evidence.length - 1];
                 addCouncilForumMessage({
                     type: 'suspicion',
@@ -2570,18 +2801,6 @@
                     speaker: aliveNPCs[1].name,
                     target: evidence.location || 'the village',
                     text: `I found ${evidence.type || 'evidence'} near ${evidence.location || 'the village center'}. Someone should explain that.`
-                }, false);
-            }
-
-            if (hasCouncilIncident && aliveNPCs.length > 1) {
-                const speaker = aliveNPCs[Math.min(2, aliveNPCs.length - 1)];
-                const target = aliveNPCs.find(n => n.id !== speaker.id) || aliveNPCs[0];
-                addCouncilForumMessage({
-                    type: 'conversation',
-                    speakerId: speaker.id,
-                    speaker: speaker.name,
-                    target: target.name,
-                    text: 'I want to hear where you were after dark.'
                 }, false);
             }
 
@@ -2616,7 +2835,7 @@
             ensureCouncilForumSeeded();
 
             if (councilForumMessages.length === 0) {
-                container.innerHTML = '<p style="color: #888;">The council is quiet. Use Announce, Accuse, Raise Suspicion, or start a private talk.</p>';
+                container.innerHTML = '<p style="color: #888;">The council is quiet. Accuse, raise suspicion, start a private talk, or open voting.</p>';
                 return;
             }
 
@@ -2702,6 +2921,30 @@
             return true;
         }
 
+        let activeCouncilStrategicAction = null;
+
+        function toggleCouncilStrategicAction(actionKey) {
+            const panel = document.getElementById(`councilAction-${actionKey}`);
+            const button = document.querySelector(`.council-action-icon-btn[data-action="${actionKey}"]`);
+            if (!panel || !button) return;
+
+            if (activeCouncilStrategicAction === actionKey) {
+                closeCouncilStrategicActions();
+                return;
+            }
+
+            closeCouncilStrategicActions();
+            activeCouncilStrategicAction = actionKey;
+            panel.classList.add('active');
+            button.classList.add('active');
+        }
+
+        function closeCouncilStrategicActions() {
+            activeCouncilStrategicAction = null;
+            document.querySelectorAll('.council-action-panel').forEach(panel => panel.classList.remove('active'));
+            document.querySelectorAll('.council-action-icon-btn').forEach(button => button.classList.remove('active'));
+        }
+
         async function ensureActionAvailable() {
             if (!gameState) return false;
             if (gameState.player?.phaseActionCount >= 2) {
@@ -2749,7 +2992,6 @@
 
         async function makeAccusation() {
             if (!requireCouncilPhase()) return;
-            if (!await ensureActionAvailable()) return;
 
             const targetId = document.getElementById('accuseTarget').value;
             const reasonInput = document.getElementById('accuseReason');
@@ -2761,23 +3003,35 @@
                 return;
             }
 
-            adjustNpcSuspicion(targetId, 18);
-            addCouncilForumMessage({
-                type: 'accusation',
-                speakerId: 'player',
-                speaker: gameState.player?.name || 'Player',
-                target: targetName,
-                text: reason
-            });
-            reasonInput.value = '';
-            addEvent(`⚖️ You accused ${targetName}`);
-            updateInvestigationSummary();
-            maybeAddNpcForumResponse('accusation', targetId);
+            try {
+                const response = await fetch(`${API_BASE}/game/council/player-action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetNpcId: targetId, reason, actionType: 'accusation' })
+                });
+                if (!response.ok) throw new Error(await response.text());
+                gameState = await response.json();
+                updateUI();
+
+                addCouncilForumMessage({
+                    type: 'accusation',
+                    speakerId: 'player',
+                    speaker: gameState.player?.name || 'Player',
+                    target: targetName,
+                    text: reason
+                });
+                reasonInput.value = '';
+                addEvent(`⚖️ You accused ${targetName}`);
+                updateInvestigationSummary();
+                await requestAlibi(targetId, reason);
+                await maybeAddNpcForumResponse('accusation', targetId);
+            } catch (error) {
+                addEvent(`❌ ${error.message}`);
+            }
         }
 
         async function raiseSuspicion() {
             if (!requireCouncilPhase()) return;
-            if (!await ensureActionAvailable()) return;
 
             const targetId = document.getElementById('suspicionTarget').value;
             const reasonInput = document.getElementById('suspicionReason');
@@ -2789,70 +3043,217 @@
                 return;
             }
 
-            adjustNpcSuspicion(targetId, 10);
-            addCouncilForumMessage({
-                type: 'suspicion',
-                speakerId: 'player',
-                speaker: gameState.player?.name || 'Player',
-                target: targetName,
-                text: reason
-            });
-            reasonInput.value = '';
-            addEvent(`🔍 You raised suspicion about ${targetName}`);
-            updateInvestigationSummary();
-            maybeAddNpcForumResponse('suspicion', targetId);
+            try {
+                const response = await fetch(`${API_BASE}/game/council/player-action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetNpcId: targetId, reason, actionType: 'suspicion' })
+                });
+                if (!response.ok) throw new Error(await response.text());
+                gameState = await response.json();
+                updateUI();
+
+                addCouncilForumMessage({
+                    type: 'suspicion',
+                    speakerId: 'player',
+                    speaker: gameState.player?.name || 'Player',
+                    target: targetName,
+                    text: reason
+                });
+                reasonInput.value = '';
+                addEvent(`🔍 You raised suspicion about ${targetName}`);
+                updateInvestigationSummary();
+                await maybeAddNpcForumResponse('suspicion', targetId);
+            } catch (error) {
+                addEvent(`❌ ${error.message}`);
+            }
         }
 
-        function adjustNpcSuspicion(targetId, amount) {
-            getAliveCouncilPersons().forEach(npc => {
-                if (npc.id === targetId) return;
-                if (!npc.suspicion) npc.suspicion = {};
-                npc.suspicion[targetId] = Math.max(0, Math.min(100, (npc.suspicion[targetId] || 0) + amount));
+        async function requestAlibi(targetId, reason, playerChoice = null) {
+            try {
+                const response = await fetch(`${API_BASE}/game/council/alibi`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetNpcId: targetId, accusationReason: reason, playerChoice })
+                });
+                if (!response.ok) throw new Error(await response.text());
+                const payload = await response.json();
+                gameState = payload.gameState;
+                updateUI();
+                addCouncilForumMessage({
+                    type: 'conversation',
+                    speakerId: payload.speakerId,
+                    speaker: payload.speaker,
+                    text: payload.text
+                });
+            } catch (error) {
+                addEvent(`âŒ ${error.message}`);
+            }
+        }
+
+        async function givePlayerAlibi(choice) {
+            await requestAlibi('player', 'public accusation', choice);
+        }
+
+        function togglePlayerAlibiOptions(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.display = element.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function togglePlayerDefenseOptions(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.display = element.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        async function playerRemainSilent() {
+            try {
+                await requestAlibi('player', 'public accusation', 'remain-silent');
+                addEvent('🤐 You chose to remain silent');
+            } catch (error) {
+                console.error('Error during silent response:', error);
+                addEvent('❌ Failed to process your silence');
+            }
+        }
+
+        async function npcRemainSilent(npcId) {
+            try {
+                const response = await fetch(`${API_BASE}/game/council/remain-silent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetNpcId: npcId })
+                });
+                if (!response.ok) throw new Error(await response.text());
+                const payload = await response.json();
+                gameState = payload.gameState;
+                updateUI();
+                addCouncilForumMessage({
+                    type: 'conversation',
+                    speakerId: payload.speakerId,
+                    speaker: payload.speaker,
+                    text: payload.text
+                });
+                addEvent(`🤐 ${payload.speaker} chose to remain silent`);
+            } catch (error) {
+                addEvent(`❌ ${error.message}`);
+            }
+        }
+
+        async function startCouncilVoting() {
+            if (!requireCouncilPhase()) return;
+            const response = await fetch(`${API_BASE}/game/council/start-vote`, { method: 'POST' });
+            if (!response.ok) {
+                addEvent(`âŒ ${await response.text()}`);
+                return;
+            }
+            gameState = await response.json();
+            updateUI();
+            addCouncilForumMessage({ type: 'announcement', speaker: 'Council', text: 'Voting is open. Choose who will be burned for retribution.' });
+        }
+
+        async function castCouncilVote() {
+            if (!requireCouncilPhase()) return;
+            const targetId = document.getElementById('voteTarget')?.value;
+            if (!targetId) {
+                addEvent('âš ï¸ Choose a person to vote against');
+                return;
+            }
+            const response = await fetch(`${API_BASE}/game/council/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetNpcId: targetId })
             });
+            if (!response.ok) {
+                addEvent(`âŒ ${await response.text()}`);
+                return;
+            }
+            gameState = await response.json();
+            updateUI();
+            addCouncilForumMessage({ type: 'suspicion', speakerId: 'player', speaker: gameState.player?.name || 'Player', target: getPersonName(targetId), text: 'I vote for retribution.' });
+        }
+
+        async function resolveCouncilVoting() {
+            if (!requireCouncilPhase()) return;
+            const response = await fetch(`${API_BASE}/game/council/resolve-vote`, { method: 'POST' });
+            if (!response.ok) {
+                addEvent(`âŒ ${await response.text()}`);
+                return;
+            }
+            gameState = await response.json();
+            updateUI();
+            const latest = gameState.councilHistory?.[gameState.councilHistory.length - 1];
+            if (latest?.burnedNpcId) {
+                addCouncilForumMessage({
+                    type: 'accusation',
+                    speaker: 'Council',
+                    target: getPersonName(latest.burnedNpcId),
+                    text: `Burned for retribution. Revealed role: ${RoleNames[latest.revealedRole] || latest.revealedRole || 'Unknown'}`
+                });
+            } else {
+                addCouncilForumMessage({ type: 'announcement', speaker: 'Council', text: 'No majority formed. No one is burned today.' });
+            }
+            renderPranksterRevealChoice();
+        }
+
+        function renderPranksterRevealChoice() {
+            if (!gameState?.pendingPranksterRevealNpcId || gameState.player?.role !== 16 || (gameState.player?.pranksterRoleChangesUsed || 0) >= 2) return;
+            const burnedName = getPersonName(gameState.pendingPranksterRevealNpcId);
+            const actualRole = gameState.npCs.find(n => n.id === gameState.pendingPranksterRevealNpcId)?.role;
+            const options = Object.entries(RoleNames)
+                .filter(([id]) => Number(id) !== actualRole)
+                .map(([, name]) => `<option value="${name}">${name}</option>`)
+                .join('');
+            addCouncilForumMessage({
+                type: 'private-event',
+                speaker: 'Prankster',
+                text: `${burnedName}'s role reveal can be altered.`,
+                actionHtml: `<div class="npc-request-conversation"><select id="fakeRoleSelect" class="action-select">${options}</select><button class="btn" onclick="submitPranksterReveal()" style="margin-top: 10px;">Change Revealed Role</button></div>`
+            });
+        }
+
+        async function submitPranksterReveal() {
+            const fakeRole = document.getElementById('fakeRoleSelect')?.value;
+            if (!fakeRole) return;
+            const response = await fetch(`${API_BASE}/game/council/prankster-reveal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fakeRole })
+            });
+            if (!response.ok) {
+                addEvent(`âŒ ${await response.text()}`);
+                return;
+            }
+            gameState = await response.json();
+            updateUI();
+            addCouncilForumMessage({ type: 'private-event', speaker: 'Prankster', text: `The public reveal now says ${fakeRole}.` });
         }
 
         async function maybeAddNpcForumResponse(context, targetId = null) {
-            const speakers = getAliveCouncilPersons().filter(npc => npc.id !== targetId);
-            if (speakers.length === 0) return;
-
-            const speaker = speakers[Math.floor(Math.random() * speakers.length)];
-            const targetName = targetId ? getPersonName(targetId) : null;
-            
-            // Consume NPC action
             try {
-                const response = await fetch(`${API_BASE}/game/npc-consume-action/${speaker.id}`, { method: 'POST' });
-                if (response.ok) {
-                    gameState = await response.json();
-                    updateUI();
-                }
-            } catch (e) { console.error(e); }
+                const response = await fetch(`${API_BASE}/game/council/npc-reaction`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ context, targetNpcId: targetId })
+                });
+                if (!response.ok) return;
 
-            const responses = {
-                announcement: [
-                    'That should be written into the record.',
-                    'Words are easy. I want proof before I trust any claim.',
-                    'At least someone is saying it aloud.'
-                ],
-                accusation: [
-                    `${targetName} should answer that directly.`,
-                    `If ${targetName} has an alibi, now is the time.`,
-                    `That is a serious charge. We need witnesses.`
-                ],
-                suspicion: [
-                    `I noticed something strange about ${targetName} too.`,
-                    `Suspicion is not proof, but it is not nothing.`,
-                    `${targetName}, explain yourself before this spreads.`
-                ]
-            };
-            const lines = responses[context] || responses.announcement;
+                const payload = await response.json();
+                gameState = payload.gameState;
+                updateUI();
 
-            addCouncilForumMessage({
-                type: 'conversation',
-                speakerId: speaker.id,
-                speaker: speaker.name,
-                target: targetName,
-                text: lines[Math.floor(Math.random() * lines.length)]
-            });
+                addCouncilForumMessage({
+                    type: 'conversation',
+                    speakerId: payload.speakerId,
+                    speaker: payload.speaker,
+                    target: targetId ? getPersonName(targetId) : null,
+                    text: payload.text
+                });
+            } catch (e) {
+                console.error('NPC council reaction failed:', e);
+            }
         }
 
         async function maybeAddNpcConversationRequest(renderNow = true) {
@@ -2919,6 +3320,88 @@
             // Switch to Private Talk tab
             openTab(null, 'tab-private');
         }
+
+        // Show backpack modal when bag icon is clicked
+        document.addEventListener('DOMContentLoaded', function () {
+            const bagBtn = document.getElementById('bagButton');
+            if (bagBtn) {
+                bagBtn.addEventListener('click', function () {
+                    showBackpackModal();
+                });
+            }
+        });
+
+        function showBackpackModal() {
+            const modal = document.getElementById('backpackModal');
+            if (modal) modal.style.display = 'block';
+            renderBackpackItems();
+        }
+
+        function closeBackpackModal() {
+            const modal = document.getElementById('backpackModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function renderBackpackItems() {
+            const container = document.getElementById('backpackItemList');
+            if (!container || !gameState || !gameState.player) return;
+            const inventory = gameState.player.inventory || [];
+            if (inventory.length === 0) {
+                container.innerHTML = '<div style="color: #888; font-style: italic;">Your backpack is empty.</div>';
+                return;
+            }
+            const itemIcons = { coin: '🪙', crop: '🌾', meat: '🥩', potion: '🧪' };
+            const usableItems = ['potion'];
+            
+            const grouped = {};
+            inventory.forEach(i => grouped[i] = (grouped[i] || 0) + 1);
+            
+            container.innerHTML = Object.entries(grouped).map(([item, count]) => {
+                const isUsable = usableItems.includes(item);
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2em;">${itemIcons[item] || '🎒'}</span>
+                            <span style="font-weight: bold;">${item.charAt(0).toUpperCase() + item.slice(1)}</span>
+                            <span style="color: #ffa500;">x${count}</span>
+                        </div>
+                        ${isUsable ? `<button class="btn" onclick="useInventoryItem('${item}')" style="padding: 4px 10px; font-size: 0.8em; margin: 0;">Use</button>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function useInventoryItem(item) {
+            try {
+                const response = await fetch(`${API_BASE}/game/inventory/consume`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item, quantity: 1 })
+                });
+                
+                if (!response.ok) throw new Error(await response.text());
+                gameState = await response.json();
+                
+                addEvent(`✨ Used ${item}`);
+                updateUI();
+                renderBackpackItems();
+                
+                if (item === 'potion') {
+                    addEvent('❤️ Potion restored 25 health and suppressed illness!');
+                }
+            } catch (error) {
+                console.error('Error using item:', error);
+                addEvent(`❌ ${error.message}`);
+            }
+        }
+
+        // Optional: Close modal when clicking outside
+        window.onclick = function (event) {
+            const modal = document.getElementById('backpackModal');
+            if (event.target === modal) {
+                closeBackpackModal();
+            }
+        };
     </script>
 </body>
 </html>

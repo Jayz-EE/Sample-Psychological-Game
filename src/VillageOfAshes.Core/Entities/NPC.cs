@@ -20,18 +20,28 @@ public class NPC
     public List<string> KnownFacts { get; set; } = new();
     public List<Rumor> Rumors { get; set; } = new();
     public List<string> Goals { get; set; } = new();
+    public bool IsGoalCompleted { get; set; } = false;
     
     // Inventory and actions
     public List<string> Inventory { get; set; } = new();
     public List<ScheduleEntry> DailySchedule { get; set; } = new();
     public List<string> NightActions { get; set; } = new();
     public List<string> BehaviorFlags { get; set; } = new();
+    public bool IsCursed { get; set; } = false;
+    public bool IsIll { get; set; } = false;
+    public int IllnessSuppressedUntilDay { get; set; } = 0;
+    public string? CurseSourceItemId { get; set; }
+    public RoleType? RevealedRole { get; set; }
+    public bool RoleRevealTampered { get; set; }
+    public int PranksterRoleChangesUsed { get; set; } = 0;
     
     // Stats
     public int Health { get; set; } = 100;
     public int Hunger { get; set; } = 0;
     public int PhaseActionCount { get; set; } = 0;
     public string CurrentLocation { get; set; } = string.Empty;
+    public int IsDisabledUntilDay { get; set; } = 0;
+    public string? TrappedByNpcId { get; set; }
 }
 
 public class ScheduleEntry

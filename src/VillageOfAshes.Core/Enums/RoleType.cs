@@ -17,5 +17,6 @@ public enum RoleType
     Hunter,
     Scholar,
     Thief,
-    Voyeur
+    Voyeur,
+    Prankster
 }

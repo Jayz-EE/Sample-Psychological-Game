@@ -9,3 +9,15 @@
 /home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/refint/VillageOfAshes.Core.dll
 /home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/VillageOfAshes.Core.pdb
 /home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/Debug/net10.0/ref/VillageOfAshes.Core.dll
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\bin\Debug\net10.0\VillageOfAshes.Core.deps.json
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\bin\Debug\net10.0\VillageOfAshes.Core.dll
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\bin\Debug\net10.0\VillageOfAshes.Core.pdb
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.AssemblyInfoInputs.cache
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.AssemblyInfo.cs
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.csproj.CoreCompileInputs.cache
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.sourcelink.json
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.dll
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\refint\VillageOfAshes.Core.dll
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\VillageOfAshes.Core.pdb
+D:\PsyChoNyMouz\Projects\Village\Sample-Psychological-Game\src\VillageOfAshes.Core\obj\Debug\net10.0\ref\VillageOfAshes.Core.dll

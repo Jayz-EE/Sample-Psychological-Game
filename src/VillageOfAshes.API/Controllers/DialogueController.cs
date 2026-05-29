@@ -10,14 +10,16 @@ namespace VillageOfAshes.API.Controllers;
 public class DialogueController : ControllerBase
 {
     private readonly IDialogueService _dialogueService;
+    private readonly INpcDecisionService _npcDecisions;
     
     // This should be replaced with proper state management (database, cache, etc.)
     private static GameState? _sharedGameState;
     private static readonly Dictionary<string, DialogueExchange> _activeExchanges = new();
 
-    public DialogueController(IDialogueService dialogueService)
+    public DialogueController(IDialogueService dialogueService, INpcDecisionService npcDecisions)
     {
         _dialogueService = dialogueService;
+        _npcDecisions = npcDecisions;
     }
     
     // Helper method to sync game state between controllers
@@ -73,23 +75,8 @@ public class DialogueController : ControllerBase
         });
     }
     
-    private DialogueContext DetermineDialogueContext(NPC npc, GameState gameState)
-    {
-        var suspicion = npc.Suspicion.GetValueOrDefault("player", 0);
-        var trust = npc.Trust.GetValueOrDefault("player", 0);
-        var fear = npc.Fear.GetValueOrDefault("player", 0);
-        
-        if (suspicion > 60)
-            return DialogueContext.Suspicious;
-        if (fear > 60)
-            return DialogueContext.Fearful;
-        if (trust > 70)
-            return DialogueContext.Trusting;
-        if (suspicion > 40)
-            return DialogueContext.Aggressive;
-            
-        return DialogueContext.Neutral;
-    }
+    private DialogueContext DetermineDialogueContext(NPC npc, GameState gameState) =>
+        _npcDecisions.ResolveDialogueContext(npc, gameState, "player");
 }
 
 public class DialogueResponse

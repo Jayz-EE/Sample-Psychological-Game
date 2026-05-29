@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\VillageOfAshes.API",
+    "\\src\\VillageOfAshes.API\\wwwroot",
+    "\\src\\VillageOfAshes.Core",
+    "\\src\\VillageOfAshes.Core\\Enums",
+    "\\src\\VillageOfAshes.Core\\Roles",
+    "\\src\\VillageOfAshes.Core\\Services",
+    "\\src\\VillageOfAshes.Infrastructure",
+    "\\src\\VillageOfAshes.Infrastructure\\bin"
+  ],
+  "PreviewInSolutionExplorer": false
+}

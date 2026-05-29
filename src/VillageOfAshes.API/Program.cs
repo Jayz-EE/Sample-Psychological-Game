@@ -21,8 +21,10 @@ builder.Services.AddCors(options =>
 
 // Register game services
 builder.Services.AddSingleton<ITimeManager, TimeManager>();
-builder.Services.AddSingleton<INightSimulationService, NightSimulationService>();
 builder.Services.AddSingleton<ISuspicionCalculator, SuspicionCalculator>();
+builder.Services.AddSingleton<INpcDecisionService, NpcDecisionService>();
+builder.Services.AddSingleton<INightSimulationService, NightSimulationService>();
+builder.Services.AddSingleton<IDaySimulationService, DaySimulationService>();
 builder.Services.AddSingleton<IDialogueService, DialogueService>();
 builder.Services.AddSingleton<IRumorService, RumorService>();
 builder.Services.AddSingleton<ICouncilService, CouncilService>();
