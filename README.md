@@ -6,6 +6,10 @@ A single-player psychological social horror simulation game built with ASP.NET C
 
 Village of Ashes is a social deduction horror game where NPCs possess hidden roles. Every night, a backend simulation executes role actions, movements, crimes, and evidence generation. Players must investigate, manipulate trust/suspicion, and survive through deduction and emergent storytelling.
 
+### ⭐ NEW: Automated Time Progression
+
+The game now features **configurable auto-time progression** that allows the village to evolve automatically without manual clicking. Configure the speed, set pause conditions (council meetings, deaths), and enjoy a smoother, more immersive experience. See [AUTO_TIME_FEATURE.md](AUTO_TIME_FEATURE.md) for details.
+
 ## 🏗️ Architecture
 
 ### Project Structure
@@ -114,6 +118,13 @@ dotnet run
 
 3. **Open the game:**
 Navigate to `http://localhost:5000` in your browser
+
+4. **Configure Auto-Time (Optional):**
+- Click "New Game" to open configuration modal
+- Enable auto-time for automatic progression
+- Set interval (how often) and increment (how much)
+- Configure pause conditions (council, deaths)
+- See [AUTO_TIME_FEATURE.md](AUTO_TIME_FEATURE.md) for detailed guide
 
 ### API Endpoints
 

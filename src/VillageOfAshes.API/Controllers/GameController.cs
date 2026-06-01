@@ -40,9 +40,22 @@ public class GameController : ControllerBase
     }
 
     [HttpPost("new")]
-    public ActionResult<object> CreateNewGame()
+    public ActionResult<object> CreateNewGame([FromBody] NewGameRequest? request = null)
     {
         _currentGame = InitializeGame();
+        
+        // Configure automation settings if provided
+        if (request != null)
+        {
+            _currentGame.AutoTimeEnabled = request.AutoTimeEnabled;
+            _currentGame.AutoTimeIntervalSeconds = Math.Clamp(request.AutoTimeIntervalSeconds, 1, 60);
+            _currentGame.AutoTimeIncrementMinutes = Math.Clamp(request.AutoTimeIncrementMinutes, 5, 360);
+            _currentGame.PauseOnCouncil = request.PauseOnCouncil;
+            _currentGame.PauseOnDeath = request.PauseOnDeath;
+            _currentGame.PauseOnPlayerAction = request.PauseOnPlayerAction;
+            _currentGame.LastAutoAdvance = DateTime.UtcNow;
+        }
+        
         _progressionService.CheckWinConditions(_currentGame);
         SyncSharedState();
         return Ok(ToClientGameState(_currentGame));
@@ -368,6 +381,100 @@ public class GameController : ControllerBase
         return Ok(ToClientGameState(_currentGame));
     }
 
+    [HttpPost("auto-time/configure")]
+    public ActionResult<object> ConfigureAutoTime([FromBody] AutoTimeConfigRequest request)
+    {
+        if (_currentGame == null)
+            return NotFound("No active game");
+
+        if (request.AutoTimeEnabled.HasValue)
+            _currentGame.AutoTimeEnabled = request.AutoTimeEnabled.Value;
+        
+        if (request.AutoTimeIntervalSeconds.HasValue)
+            _currentGame.AutoTimeIntervalSeconds = Math.Clamp(request.AutoTimeIntervalSeconds.Value, 1, 60);
+        
+        if (request.AutoTimeIncrementMinutes.HasValue)
+            _currentGame.AutoTimeIncrementMinutes = Math.Clamp(request.AutoTimeIncrementMinutes.Value, 5, 360);
+        
+        if (request.PauseOnCouncil.HasValue)
+            _currentGame.PauseOnCouncil = request.PauseOnCouncil.Value;
+        
+        if (request.PauseOnDeath.HasValue)
+            _currentGame.PauseOnDeath = request.PauseOnDeath.Value;
+        
+        if (request.PauseOnPlayerAction.HasValue)
+            _currentGame.PauseOnPlayerAction = request.PauseOnPlayerAction.Value;
+
+        _currentGame.LastAutoAdvance = DateTime.UtcNow;
+        SyncSharedState();
+        return Ok(ToClientGameState(_currentGame));
+    }
+
+    [HttpPost("auto-time/toggle")]
+    public ActionResult<object> ToggleAutoTime()
+    {
+        if (_currentGame == null)
+            return NotFound("No active game");
+
+        _currentGame.AutoTimeEnabled = !_currentGame.AutoTimeEnabled;
+        _currentGame.LastAutoAdvance = DateTime.UtcNow;
+        SyncSharedState();
+        return Ok(new { 
+            autoTimeEnabled = _currentGame.AutoTimeEnabled,
+            message = _currentGame.AutoTimeEnabled ? "Auto-time enabled" : "Auto-time paused"
+        });
+    }
+
+    [HttpGet("auto-time/should-advance")]
+    public ActionResult<object> ShouldAutoAdvance()
+    {
+        if (_currentGame == null)
+            return NotFound("No active game");
+
+        if (!_currentGame.AutoTimeEnabled || _currentGame.Status != GameStatus.InProgress)
+            return Ok(new { shouldAdvance = false, reason = "Auto-time disabled or game over" });
+
+        // Check pause conditions
+        if (_currentGame.PauseOnCouncil && _currentGame.CurrentPhase == GamePhase.VillageCouncil)
+            return Ok(new { shouldAdvance = false, reason = "Paused on council" });
+
+        var secondsSinceLastAdvance = (DateTime.UtcNow - _currentGame.LastAutoAdvance).TotalSeconds;
+        var shouldAdvance = secondsSinceLastAdvance >= _currentGame.AutoTimeIntervalSeconds;
+
+        return Ok(new { 
+            shouldAdvance,
+            secondsSinceLastAdvance,
+            intervalSeconds = _currentGame.AutoTimeIntervalSeconds,
+            incrementMinutes = _currentGame.AutoTimeIncrementMinutes
+        });
+    }
+
+    [HttpPost("auto-time/advance")]
+    public async Task<ActionResult<object>> AutoAdvanceTime()
+    {
+        if (_currentGame == null)
+            return NotFound("No active game");
+
+        if (!_currentGame.AutoTimeEnabled)
+            return BadRequest("Auto-time is not enabled");
+
+        var previousAliveCount = _currentGame.NPCs.Count(n => n.Status == NPCStatus.Alive);
+        
+        await HandleTimeAdvancement(_currentGame, _currentGame.AutoTimeIncrementMinutes);
+        _currentGame.LastAutoAdvance = DateTime.UtcNow;
+
+        // Check if someone died and pause if configured
+        var currentAliveCount = _currentGame.NPCs.Count(n => n.Status == NPCStatus.Alive);
+        if (_currentGame.PauseOnDeath && currentAliveCount < previousAliveCount)
+        {
+            _currentGame.AutoTimeEnabled = false;
+            _currentGame.PlayerNotifications.Add($"⏸️ Auto-time paused: {previousAliveCount - currentAliveCount} death(s) detected");
+        }
+
+        SyncSharedState();
+        return Ok(ToClientGameState(_currentGame));
+    }
+
     [HttpGet("npcs")]
     public ActionResult<object> GetNPCs()
     {
@@ -661,7 +768,18 @@ public class GameController : ControllerBase
             },
             game.PendingPranksterRevealNpcId,
             game.CreatedAt,
-            game.LastUpdated
+            game.LastUpdated,
+            // Automation settings
+            AutoTime = new
+            {
+                game.AutoTimeEnabled,
+                game.AutoTimeIntervalSeconds,
+                game.AutoTimeIncrementMinutes,
+                game.PauseOnCouncil,
+                game.PauseOnDeath,
+                game.PauseOnPlayerAction,
+                game.LastAutoAdvance
+            }
         };
     }
 
@@ -1288,6 +1406,38 @@ public class PlayerRumorRequest
 {
     public string TargetNpcId { get; set; } = string.Empty;
     public string Context { get; set; } = string.Empty;
+}
+
+public class NewGameRequest
+{
+    public bool AutoTimeEnabled { get; set; } = false;
+    public int AutoTimeIntervalSeconds { get; set; } = 5;
+    public int AutoTimeIncrementMinutes { get; set; } = 30;
+    public bool PauseOnCouncil { get; set; } = true;
+    public bool PauseOnDeath { get; set; } = true;
+    public bool PauseOnPlayerAction { get; set; } = false;
+}
+
+public class AutoTimeConfigRequest
+{
+    public bool? AutoTimeEnabled { get; set; }
+    public int? AutoTimeIntervalSeconds { get; set; }
+    public int? AutoTimeIncrementMinutes { get; set; }
+    public bool? PauseOnCouncil { get; set; }
+    public bool? PauseOnDeath { get; set; }
+    public bool? PauseOnPlayerAction { get; set; }
+}
+
+public class TargetNpcRequest
+{
+    public string TargetNpcId { get; set; } = string.Empty;
+}
+
+public class InventoryItemRequest
+{
+    public string Item { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public bool IsFree { get; set; } = false;
 }
 
 public class TargetNpcRequest

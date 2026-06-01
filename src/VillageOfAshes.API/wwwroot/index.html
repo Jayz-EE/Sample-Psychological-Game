@@ -761,10 +761,66 @@
         <h1>🏚️ VILLAGE OF ASHES 🏚️ <span style="font-size: 0.3em; color: #666;">v3.0</span></h1>
 
         <div class="game-controls">
-            <button class="btn" onclick="startNewGame()">New Game</button>
+            <button class="btn" onclick="showNewGameModal()">New Game</button>
             <button class="btn" onclick="advanceTime(60)">Advance 1 Hour</button>
             <button class="btn" onclick="advanceTime(360)">Advance 6 Hours</button>
+            <button class="btn" id="autoTimeToggle" onclick="toggleAutoTime()">▶️ Auto-Time</button>
             <button class="btn" onclick="refreshGame()">Refresh</button>
+        </div>
+
+        <!-- New Game Configuration Modal -->
+        <div id="newGameModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeNewGameModal()">&times;</span>
+                <h2 style="color: #8b0000; margin-bottom: 20px;">⚙️ New Game Configuration</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #ffa500; margin-bottom: 10px;">🕐 Automated Time Progression</h3>
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="checkbox" id="autoTimeEnabled" checked style="margin-right: 10px;">
+                        Enable Auto-Time (game progresses automatically)
+                    </label>
+                    
+                    <div style="margin-left: 25px;">
+                        <label style="display: block; margin-bottom: 10px;">
+                            <span style="color: #e0e0e0;">Real-time interval (seconds):</span>
+                            <input type="number" id="autoTimeInterval" value="5" min="1" max="60" 
+                                   class="action-input" style="width: 100px; display: inline-block; margin-left: 10px;">
+                            <span style="color: #888; font-size: 0.9em; margin-left: 10px;">How often to advance time</span>
+                        </label>
+                        
+                        <label style="display: block; margin-bottom: 10px;">
+                            <span style="color: #e0e0e0;">Game time increment (minutes):</span>
+                            <input type="number" id="autoTimeIncrement" value="30" min="5" max="360" 
+                                   class="action-input" style="width: 100px; display: inline-block; margin-left: 10px;">
+                            <span style="color: #888; font-size: 0.9em; margin-left: 10px;">How many game minutes per tick</span>
+                        </label>
+                        
+                        <h4 style="color: #ffa500; margin-top: 15px; margin-bottom: 10px;">Pause Conditions:</h4>
+                        
+                        <label style="display: block; margin-bottom: 8px;">
+                            <input type="checkbox" id="pauseOnCouncil" checked style="margin-right: 10px;">
+                            Pause during Village Council (recommended)
+                        </label>
+                        
+                        <label style="display: block; margin-bottom: 8px;">
+                            <input type="checkbox" id="pauseOnDeath" checked style="margin-right: 10px;">
+                            Pause when someone dies (recommended)
+                        </label>
+                        
+                        <label style="display: block; margin-bottom: 8px;">
+                            <input type="checkbox" id="pauseOnPlayerAction" style="margin-right: 10px;">
+                            Pause when player takes action
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn" onclick="startNewGameWithConfig()" style="font-size: 1.2em; padding: 15px 40px;">
+                        🎮 Start Game
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="game-info">
@@ -1393,6 +1449,170 @@
             }
         }
 
+        // ========== AUTO-TIME AUTOMATION FUNCTIONS ==========
+        
+        let autoTimeInterval = null;
+        
+        function showNewGameModal() {
+            document.getElementById('newGameModal').style.display = 'block';
+        }
+        
+        function closeNewGameModal() {
+            document.getElementById('newGameModal').style.display = 'none';
+        }
+        
+        async function startNewGameWithConfig() {
+            try {
+                const config = {
+                    autoTimeEnabled: document.getElementById('autoTimeEnabled').checked,
+                    autoTimeIntervalSeconds: parseInt(document.getElementById('autoTimeInterval').value),
+                    autoTimeIncrementMinutes: parseInt(document.getElementById('autoTimeIncrement').value),
+                    pauseOnCouncil: document.getElementById('pauseOnCouncil').checked,
+                    pauseOnDeath: document.getElementById('pauseOnDeath').checked,
+                    pauseOnPlayerAction: document.getElementById('pauseOnPlayerAction').checked
+                };
+                
+                const response = await fetch(`${API_BASE}/game/new`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (!response.ok) throw new Error(await response.text());
+                gameState = await response.json();
+                addEvent('🎮 New game started with auto-time configuration!');
+                
+                // Reset conversations
+                councilForumMessages = [];
+                privateConvoMessages = [];
+                activePrivateTalkTargetId = null;
+                
+                // Switch to Village tab
+                openTab(null, 'tab-village');
+                
+                // Initialize player resources if not present
+                if (!gameState.player.inventory) {
+                    gameState.player.inventory = [];
+                }
+                
+                updateUI();
+                updatePhaseActions();
+                closeNewGameModal();
+                
+                // Start auto-time if enabled
+                if (config.autoTimeEnabled) {
+                    startAutoTimePolling();
+                }
+            } catch (error) {
+                console.error('Error starting game:', error);
+                addEvent('❌ Error starting game');
+            }
+        }
+        
+        async function toggleAutoTime() {
+            if (!gameState) {
+                addEvent('⚠️ Start a new game first!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/game/auto-time/toggle`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error(await response.text());
+                const result = await response.json();
+                
+                gameState.autoTime.autoTimeEnabled = result.autoTimeEnabled;
+                updateAutoTimeButton();
+                
+                if (result.autoTimeEnabled) {
+                    addEvent('▶️ Auto-time enabled');
+                    startAutoTimePolling();
+                } else {
+                    addEvent('⏸️ Auto-time paused');
+                    stopAutoTimePolling();
+                }
+            } catch (error) {
+                console.error('Error toggling auto-time:', error);
+                addEvent('❌ Error toggling auto-time');
+            }
+        }
+        
+        function startAutoTimePolling() {
+            if (autoTimeInterval) {
+                clearInterval(autoTimeInterval);
+            }
+            
+            // Poll every second to check if we should advance
+            autoTimeInterval = setInterval(async () => {
+                if (!gameState || !gameState.autoTime || !gameState.autoTime.autoTimeEnabled) {
+                    stopAutoTimePolling();
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_BASE}/game/auto-time/should-advance`);
+                    if (!response.ok) return;
+                    
+                    const result = await response.json();
+                    if (result.shouldAdvance) {
+                        await autoAdvanceTime();
+                    }
+                } catch (error) {
+                    console.error('Error checking auto-advance:', error);
+                }
+            }, 1000); // Check every second
+            
+            updateAutoTimeButton();
+        }
+        
+        function stopAutoTimePolling() {
+            if (autoTimeInterval) {
+                clearInterval(autoTimeInterval);
+                autoTimeInterval = null;
+            }
+            updateAutoTimeButton();
+        }
+        
+        async function autoAdvanceTime() {
+            try {
+                const response = await fetch(`${API_BASE}/game/auto-time/advance`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error(await response.text());
+                gameState = await response.json();
+                
+                // Check if auto-time was paused due to death
+                if (!gameState.autoTime.autoTimeEnabled) {
+                    stopAutoTimePolling();
+                }
+                
+                updateUI();
+            } catch (error) {
+                console.error('Error auto-advancing time:', error);
+            }
+        }
+        
+        function updateAutoTimeButton() {
+            const button = document.getElementById('autoTimeToggle');
+            if (!button) return;
+            
+            if (gameState && gameState.autoTime && gameState.autoTime.autoTimeEnabled) {
+                button.textContent = '⏸️ Pause Auto';
+                button.style.background = '#00aa00';
+            } else {
+                button.textContent = '▶️ Auto-Time';
+                button.style.background = '#8b0000';
+            }
+        }
+        
+        // Keep the old startNewGame for backward compatibility
+        async function startNewGame() {
+            showNewGameModal();
+        }
+
         function updateUI() {
             if (!gameState) return;
 
@@ -1465,6 +1685,9 @@
             if (gameState.playerNotifications && gameState.playerNotifications.length > 0) {
                 showNotificationModal(gameState.playerNotifications);
             }
+            
+            // Update auto-time button state
+            updateAutoTimeButton();
         }
 
         function showNotificationModal(notifications) {

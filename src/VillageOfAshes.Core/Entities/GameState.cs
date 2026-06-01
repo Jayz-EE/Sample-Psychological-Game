@@ -35,6 +35,15 @@ public class GameState
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    
+    // Automated Time Progression Settings
+    public bool AutoTimeEnabled { get; set; } = false;
+    public int AutoTimeIntervalSeconds { get; set; } = 5; // Real-world seconds between auto-advances
+    public int AutoTimeIncrementMinutes { get; set; } = 30; // Game minutes to advance each tick
+    public DateTime LastAutoAdvance { get; set; } = DateTime.UtcNow;
+    public bool PauseOnCouncil { get; set; } = true; // Pause automation during council
+    public bool PauseOnDeath { get; set; } = true; // Pause when someone dies
+    public bool PauseOnPlayerAction { get; set; } = false; // Pause when player takes action
 }
 
 public class GameItem
