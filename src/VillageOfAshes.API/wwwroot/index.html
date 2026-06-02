@@ -1086,11 +1086,21 @@
                         <p style="font-size: 0.85em; color: #888; margin-bottom: 12px;">Click an icon to open an action.</p>
 
                         <div class="council-action-icons" role="toolbar" aria-label="Council strategic actions">
+                            <button type="button" class="council-action-icon-btn" data-action="statement" onclick="toggleCouncilStrategicAction('statement')" title="Make Statement" aria-label="Make Statement">💬</button>
                             <button type="button" class="council-action-icon-btn" data-action="vote" onclick="toggleCouncilStrategicAction('vote')" title="Vote" aria-label="Vote">Vote</button>
                             <button type="button" class="council-action-icon-btn" data-action="announce" onclick="toggleCouncilStrategicAction('announce')" title="Announce" aria-label="Announce">📢</button>
                             <button type="button" class="council-action-icon-btn" data-action="accuse" onclick="toggleCouncilStrategicAction('accuse')" title="Accuse" aria-label="Accuse">⚖️</button>
                             <button type="button" class="council-action-icon-btn" data-action="suspicion" onclick="toggleCouncilStrategicAction('suspicion')" title="Raise Suspicion" aria-label="Raise Suspicion">🔍</button>
                             <button type="button" class="council-action-icon-btn" data-action="private" onclick="toggleCouncilStrategicAction('private')" title="Private Conversation" aria-label="Private Conversation">💬</button>
+                        </div>
+
+                        <div id="councilAction-statement" class="council-action-panel council-action-card" style="display: none;">
+                            <h4 style="color: #4a9eff; margin-bottom: 10px;">💬 Make Statement</h4>
+                            <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Choose what to say at the council forum:</p>
+                            <div id="statementOptions" style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;">
+                                <p style="color: #888; text-align: center;">Loading dialogue options...</p>
+                            </div>
+                            <button class="btn" onclick="loadCouncilDialogueOptions()" style="width: 100%; margin-top: 10px;">Refresh Options</button>
                         </div>
 
                         <div id="councilAction-announce" class="council-action-panel council-action-card" style="display: none;">

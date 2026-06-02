@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using VillageOfAshes.Core.Entities;
 using VillageOfAshes.Core.Enums;
 using VillageOfAshes.Core.Services;
+using VillageOfAshes.Core.Dialogue;
 
 namespace VillageOfAshes.API.Controllers;
 
@@ -502,6 +503,66 @@ public class GameController : ControllerBase
         return Ok(_currentGame.Rumors);
     }
 
+    [HttpPost("council/player-statement")]
+    public ActionResult<object> MakePlayerCouncilStatement([FromBody] PlayerCouncilStatementRequest request)
+    {
+        if (_currentGame == null) return NotFound("No active game");
+        if (_currentGame.Player == null) return BadRequest("No active player");
+        if (_currentGame.CurrentPhase != GamePhase.VillageCouncil)
+            return BadRequest("Council statements can only be made during Village Council");
+        if (_currentGame.ActiveCouncil == null) return BadRequest("No active council");
+
+        if (string.IsNullOrWhiteSpace(request.Statement))
+            return BadRequest("Statement is required");
+
+        // Add player's statement to council log
+        _currentGame.ActiveCouncil.Statements.Add(new CouncilStatement
+        {
+            NpcId = _currentGame.Player.Id,
+            Statement = request.Statement.Trim(),
+            Timestamp = DateTime.UtcNow
+        });
+
+        _currentGame.RecentEvents.Add($"Council Day {_currentGame.CurrentDay}: {_currentGame.Player.Name} — {request.Statement.Trim()}");
+
+        SyncSharedState();
+        return Ok(new { 
+            success = true,
+            statement = request.Statement.Trim(),
+            gameState = ToClientGameState(_currentGame)
+        });
+    }
+
+    [HttpGet("council/dialogue-options")]
+    public ActionResult<object> GetCouncilDialogueOptions()
+    {
+        if (_currentGame == null) return NotFound("No active game");
+        if (_currentGame.Player == null) return BadRequest("No active player");
+
+        // Get the same ambiguous dialogue options that NPCs use
+        var options = DialoguePools.PassiveResponses.Take(10).ToList();
+
+        // Add some council-specific options
+        var councilOptions = new List<string>
+        {
+            "We need to stay calm and think this through carefully.",
+            "Someone here knows more than they're letting on.",
+            "The evidence points to suspicious activity last night.",
+            "I trust some of you more than others here.",
+            "We can't let fear drive our decisions.",
+            "There's been too much blood already.",
+            "I've noticed some strange behavior around the village.",
+            "We need to work together if we want to survive.",
+            "Not everyone here has the village's best interests at heart.",
+            "I'm watching all of you carefully."
+        };
+
+        return Ok(new
+        {
+            options = options.Concat(councilOptions).OrderBy(_ => Guid.NewGuid()).Take(12).ToList()
+        });
+    }
+
     [HttpPost("council/player-action")]
     public async Task<ActionResult<object>> CouncilPlayerAction([FromBody] CouncilPlayerActionRequest request)
     {
@@ -624,7 +685,8 @@ public class GameController : ControllerBase
                 else if (choice.Contains("doctor") || choice.Contains("priest") || choice.Contains("scholar"))
                 {
                     // Believable lies for non-evil roles, or deceptive for evil roles
-                    reduction = _npcDecisions.IsEvil(alibiTarget) ? 8 : 5;
+                    var isEvil = alibiTarget.Alignment is Alignment.Evil or Alignment.EvilNeutral;
+                    reduction = isEvil ? 8 : 5;
                 }
                 else if (choice.Contains("villager") || choice.Contains("farmer"))
                 {
@@ -1408,6 +1470,11 @@ public class PlayerRumorRequest
     public string Context { get; set; } = string.Empty;
 }
 
+public class PlayerCouncilStatementRequest
+{
+    public string Statement { get; set; } = string.Empty;
+}
+
 public class NewGameRequest
 {
     public bool AutoTimeEnabled { get; set; } = false;
@@ -1426,18 +1493,6 @@ public class AutoTimeConfigRequest
     public bool? PauseOnCouncil { get; set; }
     public bool? PauseOnDeath { get; set; }
     public bool? PauseOnPlayerAction { get; set; }
-}
-
-public class TargetNpcRequest
-{
-    public string TargetNpcId { get; set; } = string.Empty;
-}
-
-public class InventoryItemRequest
-{
-    public string Item { get; set; } = string.Empty;
-    public int Quantity { get; set; } = 1;
-    public bool IsFree { get; set; } = false;
 }
 
 public class TargetNpcRequest

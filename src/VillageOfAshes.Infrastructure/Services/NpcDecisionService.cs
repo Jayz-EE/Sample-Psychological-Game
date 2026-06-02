@@ -300,7 +300,7 @@ public class NpcDecisionService : INpcDecisionService
         if (isEvil)
         {
             var fakeRoles = new[] { RoleType.Doctor, RoleType.Farmer, RoleType.Shopkeeper, RoleType.Scholar, RoleType.Priest };
-            var fakeRole = fakeRoles[_random.Next(fakeRoles.Count)];
+            var fakeRole = fakeRoles[_random.Next(fakeRoles.Length)];
             
             return strategyRoll switch
             {

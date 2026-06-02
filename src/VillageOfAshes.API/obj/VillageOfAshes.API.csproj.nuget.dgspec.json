@@ -1,43 +1,37 @@
 {
   "format": 1,
   "restore": {
-    "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.API\\VillageOfAshes.API.csproj": {}
+    "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/VillageOfAshes.API.csproj": {}
   },
   "projects": {
-    "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.API\\VillageOfAshes.API.csproj": {
+    "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/VillageOfAshes.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.API\\VillageOfAshes.API.csproj",
+        "projectUniqueName": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/VillageOfAshes.API.csproj",
         "projectName": "VillageOfAshes.API",
-        "projectPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.API\\VillageOfAshes.API.csproj",
-        "packagesPath": "C:\\Users\\Jayzee\\.nuget\\packages\\",
-        "outputPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.API\\obj\\",
+        "projectPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/VillageOfAshes.API.csproj",
+        "packagesPath": "/home/classify/.nuget/packages/",
+        "outputPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Jayzee\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/classify/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj": {
-                "projectPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj"
+              "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj": {
+                "projectPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj"
               },
-              "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Infrastructure\\VillageOfAshes.Infrastructure.csproj": {
-                "projectPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Infrastructure\\VillageOfAshes.Infrastructure.csproj"
+              "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/VillageOfAshes.Infrastructure.csproj": {
+                "projectPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/VillageOfAshes.Infrastructure.csproj"
               }
             }
           }
@@ -52,11 +46,10 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.OpenApi": {
@@ -87,7 +80,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.108/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
@@ -505,33 +498,27 @@
         }
       }
     },
-    "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj": {
+    "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj",
+        "projectUniqueName": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj",
         "projectName": "VillageOfAshes.Core",
-        "projectPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj",
-        "packagesPath": "C:\\Users\\Jayzee\\.nuget\\packages\\",
-        "outputPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\obj\\",
+        "projectPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj",
+        "packagesPath": "/home/classify/.nuget/packages/",
+        "outputPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Jayzee\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/classify/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -546,11 +533,10 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "imports": [
             "net461",
@@ -568,7 +554,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.108/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -846,37 +832,31 @@
         }
       }
     },
-    "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Infrastructure\\VillageOfAshes.Infrastructure.csproj": {
+    "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/VillageOfAshes.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Infrastructure\\VillageOfAshes.Infrastructure.csproj",
+        "projectUniqueName": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/VillageOfAshes.Infrastructure.csproj",
         "projectName": "VillageOfAshes.Infrastructure",
-        "projectPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Infrastructure\\VillageOfAshes.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\Jayzee\\.nuget\\packages\\",
-        "outputPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Infrastructure\\obj\\",
+        "projectPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/VillageOfAshes.Infrastructure.csproj",
+        "packagesPath": "/home/classify/.nuget/packages/",
+        "outputPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Infrastructure/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Jayzee\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/classify/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj": {
-                "projectPath": "D:\\PsyChoNyMouz\\Projects\\Village\\Sample-Psychological-Game\\src\\VillageOfAshes.Core\\VillageOfAshes.Core.csproj"
+              "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj": {
+                "projectPath": "/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.Core/VillageOfAshes.Core.csproj"
               }
             }
           }
@@ -891,11 +871,10 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "imports": [
             "net461",
@@ -913,7 +892,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.108/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
