@@ -24,4 +24,5 @@ public interface INpcDecisionService
     string? ChooseDayAction(NPC npc, GameState game);
     string? GenerateDynamicDialogueLine(NPC npc, GameState game, DialogueContext context);
     void InitializeNpcGoals(NPC npc, GameState game);
+    void AnalyzeStatement(GameState game, string speakerId, string statement);
 }

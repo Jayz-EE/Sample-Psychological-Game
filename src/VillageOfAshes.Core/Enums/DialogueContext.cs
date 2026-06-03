@@ -7,5 +7,6 @@ public enum DialogueContext
     Fearful,
     Trusting,
     Aggressive,
-    Rumor
+    Rumor,
+    CouncilResponse
 }

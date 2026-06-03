@@ -127,10 +127,13 @@ public class GameController : ControllerBase
         {
             _npcDecisions.RefreshAllNpcSuspicions(game);
             game.ActiveCouncil = await _councilService.StartCouncilSession(game);
-            foreach (var statement in game.ActiveCouncil.Statements)
+            foreach (var statement in game.ActiveCouncil.Statements.ToList())
             {
                 var speaker = game.NPCs.FirstOrDefault(n => n.Id == statement.NpcId);
                 game.RecentEvents.Add($"Council Day {game.CurrentDay}: {speaker?.Name ?? "Villager"} — {statement.Statement}");
+
+                // All NPCs analyze these initial statements
+                _npcDecisions.AnalyzeStatement(game, statement.NpcId, statement.Statement);
             }
         }
 
@@ -525,6 +528,9 @@ public class GameController : ControllerBase
 
         _currentGame.RecentEvents.Add($"Council Day {_currentGame.CurrentDay}: {_currentGame.Player.Name} — {request.Statement.Trim()}");
 
+        // NPCs analyze the player's statement and update their opinions
+        _npcDecisions.AnalyzeStatement(_currentGame, _currentGame.Player.Id, request.Statement.Trim());
+
         SyncSharedState();
         return Ok(new { 
             success = true,
@@ -630,7 +636,7 @@ public class GameController : ControllerBase
             _currentGame.ActiveCouncil = null;
 
         SyncSharedState();
-        return Ok(ToClientGameState(_currentGame));
+        return Ok(ToClientGameState(_currentGame) );
     }
 
     [HttpPost("council/alibi")]
@@ -776,6 +782,20 @@ public class GameController : ControllerBase
             _currentGame,
             request.Context ?? "announcement",
             request.TargetNpcId);
+
+        // Add to council statements so it's persistent and analyzed
+        if (_currentGame.ActiveCouncil != null)
+        {
+            _currentGame.ActiveCouncil.Statements.Add(new CouncilStatement
+            {
+                NpcId = speaker.Id,
+                Statement = line,
+                Timestamp = DateTime.UtcNow
+            });
+            
+            // Analyze the reaction
+            _npcDecisions.AnalyzeStatement(_currentGame, speaker.Id, line);
+        }
 
         SyncSharedState();
         return Ok(new
@@ -953,6 +973,11 @@ public class GameController : ControllerBase
                 CreatedAt = DateTime.UtcNow,
                 Metadata = targetId == null ? new() : new() { ["targetNpcId"] = targetId }
             });
+
+            if (actor.Id == "player")
+            {
+                game.PlayerNotifications.Add($"🔍 Found evidence: {type} at {location}");
+            }
         }
 
         void AdjustWorld(int fear = 0, int corruption = 0, int food = 0, int economy = 0)
@@ -983,6 +1008,15 @@ public class GameController : ControllerBase
                 if (fear > 0) game.PlayerNotifications.Add($"😱 {actor.Name} has intimidated you.");
                 if (health < 0) game.PlayerNotifications.Add($"🤕 {actor.Name} has harmed you! Health: {target.Health}%");
                 if (health > 0) game.PlayerNotifications.Add($"❤️ {actor.Name} has helped you. Health: {target.Health}%");
+            }
+            else if (actor.Id == "player")
+            {
+                if (trust < 0) game.PlayerNotifications.Add($"📉 {target.Name} trusts you less now.");
+                if (trust > 0) game.PlayerNotifications.Add($"📈 {target.Name} trusts you more!");
+                if (suspicion > 0) game.PlayerNotifications.Add($"🔍 {target.Name} is more suspicious of others.");
+                if (fear > 0) game.PlayerNotifications.Add($"😱 {target.Name} is now more afraid.");
+                if (health < 0) game.PlayerNotifications.Add($"🤕 You harmed {target.Name}. Health: {target.Health}%");
+                if (health > 0) game.PlayerNotifications.Add($"❤️ You helped {target.Name}. Health: {target.Health}%");
             }
         }
 
@@ -1071,10 +1105,27 @@ public class GameController : ControllerBase
             case "DemandTestimony": AdjustTarget(suspicion: 8, fear: 8, trust: -5); AdjustWorld(fear: 3); break;
             case "BuyIngredients": AddEvidence(EvidenceType.RarePurchases, 35); AdjustWorld(economy: 2); break;
             case "SpreadFear": AdjustWorld(fear: 12); AddEvidence(EvidenceType.RarePurchases, 20); break;
-            case "PlantRumors": if (target != null) game.Rumors.Add(new Rumor { Id = Guid.NewGuid().ToString(), SourceNpcId = actor.Id, TargetNpcId = target.Id, Context = "linked to unsettling village events", Truthfulness = 25, SpreadRate = 65, CreatedAt = DateTime.UtcNow, KnownBy = new() { actor.Id } }); break;
-            case "CurseNPC": if (target != null) ApplyCurse(target); break;
-            case "HideInShadows": actor.BehaviorFlags.Add("Hidden"); AdjustTarget(suspicion: -8); break;
-            case "ObserveNPCs": actor.KnownFacts.Add($"Observed {target?.Name ?? "someone"}'s schedule"); AddEvidence(EvidenceType.Footprints, 10, target?.Id); break;
+            case "PlantRumors": 
+                if (target != null) 
+                {
+                    game.Rumors.Add(new Rumor { Id = Guid.NewGuid().ToString(), SourceNpcId = actor.Id, TargetNpcId = target.Id, Context = "linked to unsettling village events", Truthfulness = 25, SpreadRate = 65, CreatedAt = DateTime.UtcNow, KnownBy = new() { actor.Id } }); 
+                    if (actor.Id == "player") game.PlayerNotifications.Add($"📢 Rumor planted about {target.Name}.");
+                }
+                break;
+            case "CurseNPC": 
+                if (target != null) 
+                {
+                    ApplyCurse(target);
+                    if (actor.Id == "player") game.PlayerNotifications.Add($"🧪 You have cursed {target.Name}.");
+                }
+                break;
+            case "HideInShadows": actor.BehaviorFlags.Add("Hidden"); AdjustTarget(suspicion: -8); if (actor.Id == "player") game.PlayerNotifications.Add("🌑 You are now hiding in the shadows."); break;
+            case "ObserveNPCs": 
+                var fact = $"Observed {target?.Name ?? "someone"}'s schedule";
+                actor.KnownFacts.Add(fact); 
+                if (actor.Id == "player") game.PlayerNotifications.Add($"👁️ {fact}");
+                AddEvidence(EvidenceType.Footprints, 10, target?.Id); 
+                break;
             case "SellMeat": 
                 // Remove all meat from inventory and add coins
                 var meatCount = actor.Inventory.Count(i => string.Equals(i, "meat", StringComparison.OrdinalIgnoreCase));

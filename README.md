@@ -301,3 +301,9 @@ For questions or feedback about this implementation, please refer to the origina
 ---
 
 **Built with ❤️ and ☠️ using .NET 10**
+
+
+Last Prompt- 
+Fix the Actions it shows even though the COnditions  
+   does not Meet, such as an Investigation Action for a Thief Role, and a Neutral Option for Leaving or Joining Faction Options show  
+   even though it has not Finished its Goal  

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Council Button</title>
+    <style>
+        .council-action-panel {
+            display: none;
+            margin-bottom: 14px;
+            padding: 20px;
+            border: 2px solid #4a9eff;
+            background: rgba(74, 158, 255, 0.1);
+        }
+
+        .council-action-panel.active {
+            display: block;
+        }
+
+        .council-action-icon-btn {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: #f0f0f0;
+        }
+
+        .council-action-icon-btn.active {
+            background: #4a9eff;
+            color: white;
+        }
+
+        .dialogue-option {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            background: rgba(139, 0, 0, 0.3);
+            border: 1px solid rgba(139, 0, 0, 0.5);
+            color: white;
+        }
+
+        .dialogue-option:hover {
+            background: rgba(139, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body style="background: #1a1a1a; color: #fff; font-family: Arial;">
+    <h1>Council Button Test</h1>
+    <p>Click the button below to test if the panel shows up:</p>
+
+    <div class="council-action-icons">
+        <button type="button" class="council-action-icon-btn" data-action="statement" onclick="toggleCouncilStrategicAction('statement')">💬 Make Statement</button>
+        <button type="button" class="council-action-icon-btn" data-action="announce" onclick="toggleCouncilStrategicAction('announce')">📢 Announce</button>
+    </div>
+
+    <div id="councilAction-statement" class="council-action-panel" style="display: none;">
+        <h4 style="color: #4a9eff; margin-bottom: 10px;">💬 Make Statement</h4>
+        <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Choose what to say at the council forum:</p>
+        <div id="statementOptions" style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;">
+            <p style="color: #888; text-align: center;">Loading dialogue options...</p>
+        </div>
+        <button class="btn" onclick="loadCouncilDialogueOptions()" style="width: 100%; margin-top: 10px; padding: 10px;">Refresh Options</button>
+    </div>
+
+    <div id="councilAction-announce" class="council-action-panel" style="display: none;">
+        <h4 style="color: #4a9eff; margin-bottom: 10px;">📢 Announce</h4>
+        <p>This is the announce panel (for testing)</p>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5010/api';
+        let activeCouncilStrategicAction = null;
+
+        function toggleCouncilStrategicAction(actionKey) {
+            const panel = document.getElementById(`councilAction-${actionKey}`);
+            const button = document.querySelector(`.council-action-icon-btn[data-action="${actionKey}"]`);
+            
+            console.log('Toggle called:', actionKey);
+            console.log('Panel found:', !!panel);
+            console.log('Button found:', !!button);
+            
+            if (!panel || !button) return;
+
+            if (activeCouncilStrategicAction === actionKey) {
+                closeCouncilStrategicActions();
+                return;
+            }
+
+            closeCouncilStrategicActions();
+            activeCouncilStrategicAction = actionKey;
+            panel.classList.add('active');
+            panel.style.display = 'block'; // Override inline style
+            button.classList.add('active');
+
+            console.log('Panel display:', panel.style.display);
+            console.log('Panel has active class:', panel.classList.contains('active'));
+
+            // Auto-load dialogue options when opening statement panel
+            if (actionKey === 'statement') {
+                loadCouncilDialogueOptions();
+            }
+        }
+
+        function closeCouncilStrategicActions() {
+            activeCouncilStrategicAction = null;
+            document.querySelectorAll('.council-action-panel').forEach(panel => {
+                panel.classList.remove('active');
+                panel.style.display = 'none'; // Hide using inline style
+            });
+            document.querySelectorAll('.council-action-icon-btn').forEach(button => button.classList.remove('active'));
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function loadCouncilDialogueOptions() {
+            const container = document.getElementById('statementOptions');
+            if (!container) {
+                console.error('statementOptions container not found');
+                return;
+            }
+
+            container.innerHTML = '<p style="color: #888; text-align: center;">Loading dialogue options...</p>';
+            console.log('Fetching dialogue options from:', `${API_BASE}/game/council/dialogue-options`);
+
+            try {
+                const response = await fetch(`${API_BASE}/game/council/dialogue-options`);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load dialogue options');
+                }
+
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                const options = data.options || [];
+
+                if (options.length === 0) {
+                    container.innerHTML = '<p style="color: #888; text-align: center;">No dialogue options available.</p>';
+                    return;
+                }
+
+                const optionsHtml = options.map(statement => {
+                    const safeStatement = statement.replace(/'/g, "\\'");
+                    return `
+                        <button class="dialogue-option" onclick="alert('Clicked: ${safeStatement}')" style="margin-bottom: 8px; width: 100%;">
+                            ${escapeHtml(statement)}
+                        </button>
+                    `;
+                }).join('');
+
+                container.innerHTML = optionsHtml;
+                console.log('Loaded', options.length, 'dialogue options');
+            } catch (error) {
+                console.error('Error loading council dialogue options:', error);
+                container.innerHTML = '<p style="color: #ff4444; text-align: center;">Failed to load options: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

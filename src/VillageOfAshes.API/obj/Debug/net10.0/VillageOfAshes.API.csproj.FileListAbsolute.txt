@@ -83,4 +83,4 @@ D:/PsyChoNyMouz/Projects/Village/Sample-Psychological-Game/src/VillageOfAshes.AP
 D:/PsyChoNyMouz/Projects/Village/Sample-Psychological-Game/src/VillageOfAshes.API/obj/Debug/net10.0/ref/VillageOfAshes.API.dll
 D:/PsyChoNyMouz/Projects/Village/Sample-Psychological-Game/src/VillageOfAshes.API/obj/Debug/net10.0/compressed/wkts15o31m-{0}-0tmnpnxzk5-0tmnpnxzk5.gz
 /home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/obj/Debug/net10.0/VillageOfAshes.API.sourcelink.json
-/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/obj/Debug/net10.0/compressed/wkts15o31m-{0}-whkmcb9e7a-whkmcb9e7a.gz
+/home/classify/Documents/Misc/Practice/Village/src/VillageOfAshes.API/obj/Debug/net10.0/compressed/wkts15o31m-{0}-jpqn3t9hqg-jpqn3t9hqg.gz

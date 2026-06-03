@@ -83,6 +83,28 @@ public class DialogueService : IDialogueService
             gameState.Rumors.Add(rumor);
         }
 
+        // If in Council Phase, propagate to Forum
+        if (gameState.CurrentPhase == GamePhase.VillageCouncil && gameState.ActiveCouncil != null)
+        {
+            // Add Player's choice
+            gameState.ActiveCouncil.Statements.Add(new CouncilStatement
+            {
+                NpcId = "player",
+                Statement = selectedOption.Text,
+                Timestamp = DateTime.UtcNow
+            });
+            _npcDecisions.AnalyzeStatement(gameState, "player", selectedOption.Text);
+
+            // Add NPC's response
+            gameState.ActiveCouncil.Statements.Add(new CouncilStatement
+            {
+                NpcId = npcId,
+                Statement = selectedOption.NpcResponse,
+                Timestamp = DateTime.UtcNow
+            });
+            _npcDecisions.AnalyzeStatement(gameState, npcId, selectedOption.NpcResponse);
+        }
+
         gameState.ConversationLogs.Add(new ConversationLog
         {
             Id = Guid.NewGuid().ToString(),
@@ -326,11 +348,21 @@ public class DialogueService : IDialogueService
 
     private Dialogue GetDefaultDialogue(DialogueContext context)
     {
+        var fallbacks = context switch
+        {
+            DialogueContext.Suspicious => new[] { "I'm watching you.", "You're acting very strange lately.", "I don't have time for your games." },
+            DialogueContext.Trusting => new[] { "It's good to see a friendly face.", "I hope we can both get out of this alive.", "Stay safe out there." },
+            DialogueContext.Fearful => new[] { "Did you hear that? I'm sure someone's out there.", "I just want this night to end.", "I don't feel safe anywhere anymore." },
+            DialogueContext.Aggressive => new[] { "Get away from me.", "I don't want to talk to you.", "Watch your back." },
+            DialogueContext.Rumor => new[] { "People are talking, you know.", "Secrets never stay buried for long.", "I heard something... but maybe I shouldn't say." },
+            _ => new[] { "Surviving. That's all any of us can do.", "It's a heavy day, isn't it?", "Keep your head down and stay out of trouble." }
+        };
+
         return new Dialogue
         {
-            Id = "default",
+            Id = "default_" + context.ToString().ToLower(),
             Context = context,
-            Lines = new List<string> { "..." },
+            Lines = new List<string> { fallbacks[new Random().Next(fallbacks.Length)] },
             Effects = new DialogueEffects()
         };
     }
@@ -355,6 +387,70 @@ public class DialogueService : IDialogueService
                 Emotion = "Tired",
                 Lines = new List<string> { "I barely slept last night. Did you hear those strange noises?" },
                 Effects = new DialogueEffects { Fear = 5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_neutral_06",
+                Context = DialogueContext.Neutral,
+                Emotion = "Wary",
+                Lines = new List<string> { "The shadows are getting longer. We should all be more careful." },
+                Effects = new DialogueEffects { Suspicion = 2 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_neutral_07",
+                Context = DialogueContext.Neutral,
+                Emotion = "Stressed",
+                Lines = new List<string> { "Everyone is looking at everyone else like they're the killer. It's exhausting." },
+                Effects = new DialogueEffects { Trust = -2 }
+            },
+            
+            // SUSPICIOUS CONTEXT - Observations without revealing roles
+            new Dialogue
+            {
+                Id = "dlg_suspicious_09",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Curious",
+                Lines = new List<string> { "I've seen you around quite a bit lately. What exactly is your business here?" },
+                Effects = new DialogueEffects { Suspicion = 5 }
+            },
+            new Dialogue
+            {
+                Id = "dlg_suspicious_10",
+                Context = DialogueContext.Suspicious,
+                Emotion = "Wary",
+                Lines = new List<string> { "People are saying you've been asking a lot of questions. Some people don't like that." },
+                Effects = new DialogueEffects { Suspicion = 7 }
+            },
+            
+            // FEARFUL CONTEXT - Panic and anxiety
+            new Dialogue
+            {
+                Id = "dlg_fearful_07",
+                Context = DialogueContext.Fearful,
+                Emotion = "Anxious",
+                Lines = new List<string> { "Do you think the council can really protect us? It feels like we're just waiting for the end." },
+                Effects = new DialogueEffects { Fear = 10 }
+            },
+            
+            // TRUSTING CONTEXT - Sharing information
+            new Dialogue
+            {
+                Id = "dlg_trusting_06",
+                Context = DialogueContext.Trusting,
+                Emotion = "Friendly",
+                Lines = new List<string> { "It's good to talk to someone who doesn't seem to have a hidden agenda. At least, I hope you don't." },
+                Effects = new DialogueEffects { Trust = 5 }
+            },
+            
+            // AGGRESSIVE CONTEXT - Hostility
+            new Dialogue
+            {
+                Id = "dlg_aggressive_05",
+                Context = DialogueContext.Aggressive,
+                Emotion = "Dismissive",
+                Lines = new List<string> { "I have nothing to say to you. Leave me be." },
+                Effects = new DialogueEffects { Trust = -5 }
             },
             new Dialogue
             {

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VillageOfAshes.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b257e5228b46064581602ec2f305b8b0e361da82")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+70f6d52c51c806d7137ce10c5d510fd73cd7f5df")]
 [assembly: System.Reflection.AssemblyProductAttribute("VillageOfAshes.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VillageOfAshes.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

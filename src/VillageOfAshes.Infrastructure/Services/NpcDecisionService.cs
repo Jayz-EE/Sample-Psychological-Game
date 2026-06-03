@@ -68,17 +68,31 @@ public class NpcDecisionService : INpcDecisionService
         var suspicion = npc.Suspicion.GetValueOrDefault(observerId, 0);
         var trust = npc.Trust.GetValueOrDefault(observerId, 0);
         var fear = npc.Fear.GetValueOrDefault(observerId, 0);
+        var roll = _random.Next(100);
 
-        if (IsEvil(npc) && suspicion < 40 && trust < 50)
-            return _random.Next(100) < 35 ? DialogueContext.Neutral : DialogueContext.Rumor;
+        // Evil NPCs are better at masking their intent if they are not too suspicious
+        if (IsEvil(npc) && suspicion < 45 && trust < 55)
+        {
+            if (roll < 30) return DialogueContext.Rumor;
+            if (roll < 60) return DialogueContext.Neutral;
+        }
 
-        if (suspicion > 65) return DialogueContext.Aggressive;
-        if (suspicion > 50) return DialogueContext.Suspicious;
-        if (fear > 55 || game.VillageFear > 70) return DialogueContext.Fearful;
-        if (trust > 65) return DialogueContext.Trusting;
+        // Fuzzy thresholds to make it less predictable
+        if (suspicion > 60 && roll < (suspicion - 10)) return DialogueContext.Aggressive;
+        if (suspicion > 40 && roll < (suspicion + 10)) return DialogueContext.Suspicious;
+        
+        if (fear > 50 && roll < (fear + 15)) return DialogueContext.Fearful;
+        if (game.VillageFear > 65 && roll < 40) return DialogueContext.Fearful;
 
-        if (game.Rumors.Any(r => r.KnownBy.Contains(npc.Id) && r.TargetNpcId == observerId))
+        if (trust > 60 && roll < (trust - 10)) return DialogueContext.Trusting;
+        if (trust > 40 && roll < (trust / 2)) return DialogueContext.Trusting;
+
+        if (game.Rumors.Any(r => r.KnownBy.Contains(npc.Id) && r.TargetNpcId == observerId) && roll < 70)
             return DialogueContext.Rumor;
+
+        // Small chance for NPCs to be randomly suspicious or trusting regardless of stats
+        if (roll < 5) return DialogueContext.Suspicious;
+        if (roll > 95) return DialogueContext.Trusting;
 
         return DialogueContext.Neutral;
     }
@@ -240,6 +254,23 @@ public class NpcDecisionService : INpcDecisionService
             _ => "The air is heavy today. "
         };
 
+        // Add some variety based on NPC role/personality even if not explicitly role-claiming
+        if (_random.Next(100) < 30)
+        {
+            var roleOpener = npc.Role switch
+            {
+                RoleType.Doctor => "I've been checking on the neighbors. ",
+                RoleType.Farmer => "The soil feels cold today. ",
+                RoleType.Shopkeeper => "People have been buying a lot of supplies lately. ",
+                RoleType.Priest => "I've been praying for the village. ",
+                RoleType.Detective => "I'm trying to make sense of the latest reports. ",
+                _ => moodTone
+            };
+            
+            if (roleOpener != moodTone)
+                return roleOpener + (context is DialogueContext.Fearful ? "I'm worried about what's coming." : "It's all very unsettling.");
+        }
+
         // If highly suspicious of the player, they might hint or lie about their role
         var playerSuspicion = npc.Suspicion.GetValueOrDefault("player", 0);
         if (playerSuspicion > 50 && _random.Next(100) < 40)
@@ -288,7 +319,13 @@ public class NpcDecisionService : INpcDecisionService
             };
         }
 
-        return null;
+        // Fallback to more natural neutral dialogue instead of null
+        return _random.Next(3) switch
+        {
+            0 => "I don't know who to trust anymore.",
+            1 => "Every day feels shorter than the last.",
+            _ => "We just need to survive until morning."
+        };
     }
 
     private string GenerateRoleClaim(NPC npc, GameState game, bool isAccusation)
@@ -428,6 +465,100 @@ public class NpcDecisionService : INpcDecisionService
             npc.Goals.Add("Trade secrets at the shop without revealing sources");
         else if (npc.Role == RoleType.Prankster)
             npc.Goals.Add("Confuse public certainty and tamper with role reveals twice at most");
+    }
+
+    public void AnalyzeStatement(GameState game, string speakerId, string statement)
+    {
+        // All NPCs analyze the statement made publicly (e.g., at council)
+        var speaker = game.NPCs.FirstOrDefault(n => n.Id == speakerId) 
+                      ?? (game.Player?.Id == speakerId ? game.Player : null);
+        
+        if (speaker == null) return;
+
+        var aliveNpcs = game.NPCs.Where(n => n.Status == NPCStatus.Alive && n.Id != speakerId).ToList();
+
+        foreach (var npc in aliveNpcs)
+        {
+            // Determine how the NPC interprets the statement based on their role and alignment
+            var trustChange = 0;
+            var suspicionChange = 0;
+
+            // Analyze statement tone (simplified keyword matching)
+            var statement_lower = statement.ToLower();
+            var isCautious = statement_lower.Contains("careful") || statement_lower.Contains("wait") || 
+                            statement_lower.Contains("evidence") || statement_lower.Contains("calm") ||
+                            statement_lower.Contains("orderly");
+            var isAccusatory = statement_lower.Contains("suspicious") || statement_lower.Contains("guilty") || 
+                              statement_lower.Contains("liar") || statement_lower.Contains("evil") ||
+                              statement_lower.Contains("knows more") || statement_lower.Contains("witness");
+            var isDefensive = statement_lower.Contains("nothing") || statement_lower.Contains("innocent") || 
+                             statement_lower.Contains("silence") || statement_lower.Contains("watching") ||
+                             statement_lower.Contains("alibi") || statement_lower.Contains("claim");
+            var isCooperative = statement_lower.Contains("together") || statement_lower.Contains("help") || 
+                               statement_lower.Contains("cooperate") || statement_lower.Contains("trust") ||
+                               statement_lower.Contains("work together");
+
+            // NPCs with different alignments interpret statements differently
+            if (npc.Alignment == Alignment.Good || npc.Alignment == Alignment.GoodNeutral)
+            {
+                // Good NPCs appreciate cooperation and caution
+                if (isCooperative) trustChange += _random.Next(3, 8);
+                if (isCautious) trustChange += _random.Next(2, 5);
+                if (isAccusatory) suspicionChange += _random.Next(-3, 2); // Might be seen as paranoid
+                if (isDefensive) suspicionChange += _random.Next(1, 5); // Defensiveness raises suspicion
+            }
+            else if (npc.Alignment == Alignment.Evil || npc.Alignment == Alignment.EvilNeutral)
+            {
+                // Evil NPCs are wary of accusatory and cautious people
+                if (isAccusatory) suspicionChange += _random.Next(3, 7); // Threats are noted
+                if (isCautious) suspicionChange += _random.Next(2, 5); // Careful observers are dangerous
+                if (isCooperative) trustChange += _random.Next(1, 3); // Can be manipulated
+                if (isDefensive) trustChange += _random.Next(2, 4); // Defensiveness might mean they're vulnerable
+            }
+
+            // Role-specific analysis
+            if (npc.Role == RoleType.Detective)
+            {
+                // Detectives pay more attention to defensive or evasive statements
+                if (isDefensive) suspicionChange += _random.Next(3, 6);
+                if (isCautious) trustChange += _random.Next(2, 4);
+            }
+            else if (npc.Role == RoleType.Butcher)
+            {
+                // Butcher looks for weak targets
+                if (isDefensive || isCautious) trustChange -= _random.Next(2, 5);
+            }
+
+            // Update trust and suspicion
+            if (!npc.Trust.ContainsKey(speakerId))
+                npc.Trust[speakerId] = 50;
+            if (!npc.Suspicion.ContainsKey(speakerId))
+                npc.Suspicion[speakerId] = 0;
+
+            npc.Trust[speakerId] = Math.Clamp(npc.Trust[speakerId] + trustChange, 0, 100);
+            npc.Suspicion[speakerId] = Math.Clamp(npc.Suspicion[speakerId] + suspicionChange, 0, 100);
+
+            // NPCs might respond to the statement (small chance)
+            if (_random.Next(100) < 15 && game.ActiveCouncil != null && game.ActiveCouncil.Statements.Count < 30)
+            {
+                var responseStatement = GenerateDynamicDialogueLine(npc, game, DialogueContext.CouncilResponse);
+                
+                if (!string.IsNullOrEmpty(responseStatement))
+                {
+                    game.ActiveCouncil.Statements.Add(new CouncilStatement
+                    {
+                        NpcId = npc.Id,
+                        Statement = responseStatement,
+                        Timestamp = DateTime.UtcNow
+                    });
+
+                    game.RecentEvents.Add($"Council Day {game.CurrentDay}: {npc.Name} — {responseStatement}");
+
+                    // Other NPCs analyze this response too (careful with recursion, but limited by chance and count)
+                    AnalyzeStatement(game, npc.Id, responseStatement);
+                }
+            }
+        }
     }
 
     private int ScoreTarget(NPC actor, NPC target, GameState game, NpcTargetIntent intent)

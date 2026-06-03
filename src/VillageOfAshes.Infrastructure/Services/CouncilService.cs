@@ -39,6 +39,9 @@ public class CouncilService : ICouncilService
                     Statement = statement,
                     Timestamp = DateTime.UtcNow
                 });
+                
+                // All other NPCs analyze this statement
+                _npcDecisions.AnalyzeStatement(gameState, npc.Id, statement);
             }
 
             // Generate accusations based on calculated suspicion and role intent

@@ -56,23 +56,29 @@ public class GameProgressionService : IGameProgressionService
 
     public void UpdateFactionAlignments(GameState gameState)
     {
-        var aliveNpcs = gameState.NPCs.Where(n => n.Status == NPCStatus.Alive).ToList();
+        var participants = gameState.NPCs.Where(n => n.Status == NPCStatus.Alive).ToList();
+        if (gameState.Player != null && gameState.Player.Status == NPCStatus.Alive)
+            participants.Add(gameState.Player);
         
-        foreach (var npc in aliveNpcs)
+        foreach (var npc in participants)
         {
             // Check for goal completion (simplified logic for now)
             if (!npc.IsGoalCompleted && IsNeutral(npc.Alignment))
             {
                 // Example: Thief completes goal if they have many items or high suspicion handled
-                if (npc.Role == RoleType.Thief && npc.Inventory.Count(i => i == "coin") >= 3)
+                if (npc.Role == RoleType.Thief && (npc.Inventory.Count(i => i == "coin") >= 3 || (npc.HeldItems != null && npc.HeldItems.Count >= 2)))
                     npc.IsGoalCompleted = true;
                 
                 // Example: Prankster completes goal if they survived 3 days
                 if (npc.Role == RoleType.Prankster && gameState.CurrentDay >= 3)
                     npc.IsGoalCompleted = true;
 
+                // Example: Hunter completes goal if they found 5 pieces of evidence
+                if (npc.Role == RoleType.Hunter && gameState.Evidence.Count(e => e.CreatedBy == npc.Id) >= 3)
+                    npc.IsGoalCompleted = true;
+
                 // High trust from an Evil/Good faction also triggers allegiance
-                foreach (var other in aliveNpcs.Concat(gameState.Player == null ? Enumerable.Empty<NPC>() : new[] { gameState.Player }))
+                foreach (var other in participants)
                 {
                     if (other.Id == npc.Id || IsNeutral(other.Alignment)) continue;
                     var trust = npc.Trust.GetValueOrDefault(other.Id, 50);
@@ -87,8 +93,6 @@ public class GameProgressionService : IGameProgressionService
 
             if (!IsNeutral(npc.Alignment)) continue;
             if (npc.Role == RoleType.Shopkeeper) continue; // Shopkeeper is fixed
-
-            // ... rest of the existing trust-based shift logic if not already handled ...
         }
     }
 
