@@ -2044,9 +2044,11 @@
                 
                 // Show neutral strategic actions if player is neutral and has completed their primary goal
                 const playerAlignment = gameState.player?.alignment;
-                const isNeutral = playerAlignment === 2 || playerAlignment === 'Neutral' || 
-                                 playerAlignment === 3 || playerAlignment === 'GoodNeutral' || 
-                                 playerAlignment === 4 || playerAlignment === 'EvilNeutral';
+                const playerAlignmentValue = typeof playerAlignment === 'string' ? 
+                    Object.keys(AlignmentNames).find(key => AlignmentNames[key] === playerAlignment) || playerAlignment : 
+                    playerAlignment;
+                
+                const isNeutral = playerAlignmentValue == 2 || playerAlignmentValue == 3 || playerAlignmentValue == 4;
                 const isGoalCompleted = gameState.player?.isGoalCompleted || gameState.player?.IsGoalCompleted;
                 
                 document.getElementById('neutralStrategicActions').style.display = (isNeutral && isGoalCompleted) ? 'block' : 'none';
@@ -2055,7 +2057,8 @@
                 // Show investigation action only for investigative roles
                 // Detective (0), Prosecutor (7), Scholar (13), Voyeur (15)
                 const playerRole = gameState.player?.role;
-                const isInvestigator = [0, 7, 13, 15].includes(playerRole);
+                const playerRoleValue = Number(playerRole);
+                const isInvestigator = [0, 7, 13, 15].includes(playerRoleValue);
                 document.getElementById('generalInvestigationAction').style.display = isInvestigator ? 'block' : 'none';
             }
             // Phase 0 = Night Simulation (9 PM - 6 AM)

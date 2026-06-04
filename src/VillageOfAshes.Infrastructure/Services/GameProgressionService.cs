@@ -66,15 +66,16 @@ public class GameProgressionService : IGameProgressionService
             if (!npc.IsGoalCompleted && IsNeutral(npc.Alignment))
             {
                 // Example: Thief completes goal if they have many items or high suspicion handled
-                if (npc.Role == RoleType.Thief && (npc.Inventory.Count(i => i == "coin") >= 3 || (npc.HeldItems != null && npc.HeldItems.Count >= 2)))
+                var heldItemsCount = gameState.Items.Count(i => i.CurrentHolderId == npc.Id);
+                if (npc.Role == RoleType.Thief && (npc.Inventory.Count(i => i == "coin") >= 12 || heldItemsCount >= 3))
                     npc.IsGoalCompleted = true;
                 
-                // Example: Prankster completes goal if they survived 3 days
-                if (npc.Role == RoleType.Prankster && gameState.CurrentDay >= 3)
+                // Example: Prankster completes goal if they survived 5 days
+                if (npc.Role == RoleType.Prankster && gameState.CurrentDay >= 5)
                     npc.IsGoalCompleted = true;
 
                 // Example: Hunter completes goal if they found 5 pieces of evidence
-                if (npc.Role == RoleType.Hunter && gameState.Evidence.Count(e => e.CreatedBy == npc.Id) >= 3)
+                if (npc.Role == RoleType.Hunter && gameState.Evidence.Count(e => e.CreatedBy == npc.Id) >= 5)
                     npc.IsGoalCompleted = true;
 
                 // High trust from an Evil/Good faction also triggers allegiance
@@ -82,7 +83,7 @@ public class GameProgressionService : IGameProgressionService
                 {
                     if (other.Id == npc.Id || IsNeutral(other.Alignment)) continue;
                     var trust = npc.Trust.GetValueOrDefault(other.Id, 50);
-                    if (trust > 80)
+                    if (trust > 90) // Increased threshold
                     {
                         npc.IsGoalCompleted = true;
                         HandleFactionShift(gameState, npc.Id, IsGood(other.Alignment));

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VillageOfAshes.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+70f6d52c51c806d7137ce10c5d510fd73cd7f5df")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51e359f25cf9df38ca809518470f1e59427c9201")]
 [assembly: System.Reflection.AssemblyProductAttribute("VillageOfAshes.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VillageOfAshes.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
