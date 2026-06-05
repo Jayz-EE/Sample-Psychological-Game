@@ -27,24 +27,37 @@ public class CouncilService : ICouncilService
 
         // Generate NPC statements based on their knowledge and suspicions
         var aliveNpcs = gameState.NPCs.Where(n => n.Status == NPCStatus.Alive).ToList();
-
-        foreach (var npc in aliveNpcs)
+        
+        // Initial round of general statements
+        foreach (var npc in aliveNpcs.OrderBy(_ => _random.Next()))
         {
-            var statement = GenerateStatement(npc, gameState);
-            if (!string.IsNullOrEmpty(statement))
+            var statementText = GenerateStatement(npc, gameState);
+            if (!string.IsNullOrEmpty(statementText))
             {
-                session.Statements.Add(new CouncilStatement
+                var stmt = new CouncilStatement
                 {
                     NpcId = npc.Id,
-                    Statement = statement,
+                    Statement = statementText,
                     Timestamp = DateTime.UtcNow
-                });
+                };
+                session.Statements.Add(stmt);
+                AddRecentDiscourse(session, stmt);
                 
                 // All other NPCs analyze this statement
-                _npcDecisions.AnalyzeStatement(gameState, npc.Id, statement);
+                _npcDecisions.AnalyzeStatement(gameState, npc.Id, statementText);
+                
+                // Potential chain reaction: Someone might immediately react to this
+                await ProcessReactions(gameState, session, npc.Id, statementText);
             }
+        }
 
-            // Generate accusations based on calculated suspicion and role intent
+        // Accusation Phase
+        foreach (var npc in aliveNpcs.OrderBy(_ => _random.Next()))
+        {
+            // Skip if they already participated in a heated chain
+            if (session.RecentDiscourse.Any(d => d.NpcId == npc.Id && d.TargetNpcId != null))
+                continue;
+
             var target = _npcDecisions.ChooseTarget(gameState, npc, NpcTargetIntent.Accuse);
             var suspicionLevel = target == null ? 0 : npc.Suspicion.GetValueOrDefault(target.Id, 0);
 
@@ -52,6 +65,7 @@ public class CouncilService : ICouncilService
             {
                 var reason = GenerateAccusationReason(npc, target, gameState);
                 var response = _npcDecisions.GenerateAlibiLine(target, gameState, reason);
+                
                 session.Accusations.Add(new Accusation
                 {
                     SourceNpcId = npc.Id,
@@ -59,13 +73,65 @@ public class CouncilService : ICouncilService
                     Reason = reason,
                     Response = response
                 });
+
+                // Add to discourse for reactions
+                var accStmt = new CouncilStatement { NpcId = npc.Id, Statement = reason, TargetNpcId = target.Id, Timestamp = DateTime.UtcNow };
+                var resStmt = new CouncilStatement { NpcId = target.Id, Statement = response, TargetNpcId = npc.Id, Timestamp = DateTime.UtcNow };
+                
+                session.Statements.Add(accStmt);
+                AddRecentDiscourse(session, accStmt);
+                session.Statements.Add(resStmt);
+                AddRecentDiscourse(session, resStmt);
+
                 ProcessAccusation(gameState, npc.Id, target.Id, reason);
+                
+                // Chain reaction to accusation
+                await ProcessReactions(gameState, session, target.Id, response);
             }
         }
 
         await Task.CompletedTask;
         return session;
     }
+
+    private void AddRecentDiscourse(CouncilSession session, CouncilStatement statement)
+    {
+        session.RecentDiscourse.Add(statement);
+        if (session.RecentDiscourse.Count > 5)
+            session.RecentDiscourse.RemoveAt(0);
+    }
+
+    private async Task ProcessReactions(GameState gameState, CouncilSession session, string speakerId, string statement)
+    {
+        var aliveNpcs = gameState.NPCs.Where(n => n.Status == NPCStatus.Alive && n.Id != speakerId).ToList();
+        
+        // Only a few NPCs react to maintain flow
+        var reactors = aliveNpcs.OrderBy(_ => _random.Next()).Take(_random.Next(1, 3));
+
+        foreach (var reactor in reactors)
+        {
+            // 30% chance to react if it's not directed at them, 70% if it is
+            var isTarget = session.RecentDiscourse.LastOrDefault()?.TargetNpcId == reactor.Id;
+            if (_random.Next(100) > (isTarget ? 30 : 70)) continue;
+
+            var reaction = _npcDecisions.GenerateCouncilReaction(reactor, gameState, session.RecentDiscourse);
+            if (!string.IsNullOrEmpty(reaction))
+            {
+                var stmt = new CouncilStatement
+                {
+                    NpcId = reactor.Id,
+                    Statement = reaction,
+                    Timestamp = DateTime.UtcNow,
+                    TargetNpcId = speakerId
+                };
+                session.Statements.Add(stmt);
+                AddRecentDiscourse(session, stmt);
+                _npcDecisions.AnalyzeStatement(gameState, reactor.Id, reaction);
+            }
+        }
+        await Task.CompletedTask;
+    }
+
 
     public void ProcessAccusation(GameState gameState, string sourceNpcId, string targetNpcId, string reason)
     {

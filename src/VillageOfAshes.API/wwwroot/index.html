@@ -490,14 +490,89 @@
             display: block;
         }
 
-        .council-response-panel {
-            display: none;
-            margin-bottom: 16px;
-            padding: 14px;
-            background: rgba(0,0,0,0.35);
-            border: 1px solid #555;
-            border-radius: 8px;
+        /* Toast Notifications */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
         }
+
+        .toast {
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid #444;
+            border-left: 5px solid #ffa500;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            min-width: 250px;
+            max-width: 350px;
+            pointer-events: auto;
+            animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 4.5s forwards;
+            position: relative;
+        }
+
+        .toast.important { border-left-color: #ff4444; }
+        .toast.success { border-left-color: #00ff00; }
+        .toast.info { border-left-color: #4a9eff; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Tiered Event Log */
+        .event {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .event:hover { background: rgba(255, 255, 255, 0.03); }
+        .event-time { color: #666; font-size: 0.8em; margin-right: 8px; font-family: monospace; }
+        .event-msg { color: #ccc; }
+        .event.urgent { background: rgba(139, 0, 0, 0.1); border-left: 3px solid #ff4444; }
+        .event.urgent .event-msg { color: #ff8888; font-weight: bold; }
+        .event.action { background: rgba(0, 139, 0, 0.05); border-left: 3px solid #00ff00; }
+        .event.action .event-msg { color: #88ff88; }
+        .event.discovery { background: rgba(74, 158, 255, 0.05); border-left: 3px solid #4a9eff; }
+        .event.discovery .event-msg { color: #aaddff; }
+        .event.atmosphere { font-style: italic; opacity: 0.8; }
+
+        /* Button Loading States */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-loading::after {
+            content: "";
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-left: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
 
         @media (max-width: 1000px) {
             .council-forum-layout {
@@ -781,6 +856,7 @@
     </style>
 </head>
 <body>
+    <div id="toastContainer"></div>
     <div class="container">
         <h1>🏚️ VILLAGE OF ASHES 🏚️ <span style="font-size: 0.3em; color: #666;">v3.0</span></h1>
 
@@ -1016,7 +1092,7 @@
                                     <select id="councilNpcSelect" class="action-select">
                                         <option value="">Select NPC to talk to...</option>
                                     </select>
-                                    <button class="btn" onclick="talkToNPC()" style="margin-top: 10px; width: 100%;">Start Conversation</button>
+                                    <button class="btn" onclick="talkToNPC(event)" style="margin-top: 10px; width: 100%;">Start Conversation</button>
                                 </div>
                             </div>
 
@@ -1047,13 +1123,13 @@
                                     <div id="neutralStrategicActions" style="display: none; margin-bottom: 15px; padding: 10px; border: 1px solid #444; border-radius: 5px; background: rgba(139, 165, 0, 0.05);">
                                         <h5 style="color: #ccc; font-size: 0.8em; margin-bottom: 8px;">Strategic Choices</h5>
                                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                            <button class="btn" onclick="performRoleAction('LeaveVillage', 'day')" style="background: #4a5d23; color: #fff;">🚪 Leave Village</button>
+                                            <button class="btn" onclick="performRoleAction('LeaveVillage', 'day', event)" style="background: #4a5d23; color: #fff;">🚪 Leave Village</button>
                                             <button class="btn" onclick="showFactionOptions()" style="background: #5d4a23; color: #fff;">🤝 Join Faction</button>
                                         </div>
                                         <div id="factionOptions" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
                                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                                <button class="btn" onclick="performRoleAction('JoinGoodFaction', 'day')" style="background: #004d00; font-size: 0.8em;">Good Faction</button>
-                                                <button class="btn" onclick="performRoleAction('JoinEvilFaction', 'day')" style="background: #4d0000; font-size: 0.8em;">Evil Faction</button>
+                                                <button class="btn" onclick="performRoleAction('JoinGoodFaction', 'day', event)" style="background: #004d00; font-size: 0.8em;">Good Faction</button>
+                                                <button class="btn" onclick="performRoleAction('JoinEvilFaction', 'day', event)" style="background: #4d0000; font-size: 0.8em;">Evil Faction</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1063,14 +1139,14 @@
                                         <select id="investigateNpcSelect" class="action-select">
                                             <option value="">Investigate NPC...</option>
                                         </select>
-                                        <button class="btn" onclick="investigateNPC()" style="margin-top: 10px; width: 100%;">🔍 Investigate</button>
+                                        <button class="btn" onclick="investigateNPC(event)" style="margin-top: 10px; width: 100%;">🔍 Investigate</button>
                                     </div>
 
                                     <select id="rumorTargetSelect" class="action-select" style="margin-top: 10px;">
                                         <option value="">Spread rumor about...</option>
                                     </select>
                                     <input type="text" id="rumorText" placeholder="What rumor to spread?" class="action-input" style="margin-top: 10px;">
-                                    <button class="btn" onclick="spreadRumor()" style="margin-top: 10px; width: 100%;">📢 Spread Rumor</button>
+                                    <button class="btn" onclick="spreadRumor(event)" style="margin-top: 10px; width: 100%;">📢 Spread Rumor</button>
                                 </div>
                             </div>
 
@@ -1133,7 +1209,7 @@
                         <div id="councilAction-announce" class="council-action-panel council-action-card" style="display: none;">
                             <h4 style="color: #4a9eff; margin-bottom: 10px;">📢 Announce</h4>
                             <textarea id="announceText" placeholder="What do you want to announce?" class="action-input" rows="3"></textarea>
-                            <button class="btn" onclick="makeAnnouncement()" style="width: 100%; margin-top: 10px;">Make Announcement</button>
+                            <button class="btn" onclick="makeAnnouncement(event)" style="width: 100%; margin-top: 10px;">Make Announcement</button>
                         </div>
 
                         <div id="councilAction-accuse" class="council-action-panel council-action-card">
@@ -1142,7 +1218,7 @@
                                 <option value="">Select person to accuse...</option>
                             </select>
                             <textarea id="accuseReason" placeholder="Why are you accusing them?" class="action-input" rows="2" style="margin-top: 10px;"></textarea>
-                            <button class="btn" onclick="makeAccusation()" style="width: 100%; margin-top: 10px;">Make Accusation</button>
+                            <button class="btn" onclick="makeAccusation(event)" style="width: 100%; margin-top: 10px;">Make Accusation</button>
                         </div>
 
                         <div id="councilAction-suspicion" class="council-action-panel council-action-card">
@@ -1151,7 +1227,7 @@
                                 <option value="">Select person...</option>
                             </select>
                             <textarea id="suspicionReason" placeholder="What suspicious behavior did you notice?" class="action-input" rows="2" style="margin-top: 10px;"></textarea>
-                            <button class="btn" onclick="raiseSuspicion()" style="width: 100%; margin-top: 10px;">Raise Suspicion</button>
+                            <button class="btn" onclick="raiseSuspicion(event)" style="width: 100%; margin-top: 10px;">Raise Suspicion</button>
                         </div>
 
                         <div id="councilAction-private" class="council-action-panel council-action-card">
@@ -1406,21 +1482,42 @@
             }
         }
 
-        async function postGameAction(endpoint, body) {
-            const response = await fetch(`${API_BASE}/game/${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                const message = await response.text();
-                throw new Error(message || 'Action failed');
+        async function postGameAction(endpoint, body, element = null) {
+            if (element) {
+                element.disabled = true;
+                element.classList.add('btn-loading');
             }
 
-            gameState = await response.json();
-            updateUI();
-            return gameState;
+            try {
+                const response = await fetch(`${API_BASE}/game/${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error(message || 'Action failed');
+                }
+
+                const result = await response.json();
+                
+                // Handle new response format { gameState, actionResult } 
+                // and old format which was just gameState
+                if (result.gameState) {
+                    gameState = result.gameState;
+                } else {
+                    gameState = result;
+                }
+                
+                updateUI();
+                return result;
+            } finally {
+                if (element) {
+                    element.disabled = false;
+                    element.classList.remove('btn-loading');
+                }
+            }
         }
 
         async function startNewGame() {
@@ -1650,6 +1747,8 @@
             showNewGameModal();
         }
 
+        let lastProcessedEventIndex = -1;
+
         function updateUI() {
             if (!gameState) return;
 
@@ -1675,6 +1774,25 @@
                 }
             } else {
                 outcomeDiv.style.display = 'none';
+            }
+
+            // Sync Server Events to Log
+            if (gameState.recentEvents && gameState.recentEvents.length > 0) {
+                // If the game just started or reset, reset index
+                if (gameState.recentEvents.length <= lastProcessedEventIndex) {
+                    lastProcessedEventIndex = -1;
+                }
+                
+                for (let i = lastProcessedEventIndex + 1; i < gameState.recentEvents.length; i++) {
+                    const msg = gameState.recentEvents[i];
+                    let type = 'normal';
+                    if (msg.includes('💀') || msg.includes('died') || msg.includes('death')) type = 'urgent';
+                    else if (msg.includes('found') || msg.includes('discovery') || msg.includes('evidence')) type = 'discovery';
+                    else if (msg.includes('Day') || msg.includes('Night') || msg.includes('Phase')) type = 'atmosphere';
+                    
+                    addEvent(msg, type);
+                }
+                lastProcessedEventIndex = gameState.recentEvents.length - 1;
             }
 
             // Update game info
@@ -1938,64 +2056,85 @@
             return `${displayHours}:${minutes} ${ampm}`;
         }
 
-        function addEvent(message) {
-            eventLog.unshift({
-                time: new Date().toLocaleTimeString(),
-                message: message
-            });
+        function addEvent(message, type = 'normal') {
+            const event = {
+                id: Date.now() + Math.random(),
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                message: message,
+                type: type // 'urgent', 'action', 'discovery', 'atmosphere', 'normal'
+            };
+            
+            eventLog.unshift(event);
 
-            if (eventLog.length > 20) {
-                eventLog = eventLog.slice(0, 20);
+            if (eventLog.length > 50) {
+                eventLog = eventLog.slice(0, 50);
             }
 
             updateEventLog();
+            
+            // Auto-toast successes and urgents
+            if (type === 'action') showToast(message, 'success');
+            if (type === 'urgent') showToast(message, 'important');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            // Remove after animation finishes
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    container.removeChild(toast);
+                }
+            }, 5000);
         }
 
         function updateEventLog() {
             const container = document.getElementById('eventLog');
-            container.innerHTML = eventLog.map(event => 
-                `<div class="event">[${event.time}] ${event.message}</div>`
-            ).join('');
+            if (!container) return;
+            
+            container.innerHTML = eventLog.map(event => `
+                <div class="event ${event.type}">
+                    <span class="event-time">[${event.time}]</span>
+                    <span class="event-msg">${event.message}</span>
+                </div>
+            `).join('');
         }
 
-        // Initialize
-        addEvent('🏚️ Welcome to Village of Ashes');
-        addEvent('💀 A social horror simulation game');
-        addEvent('🎮 Click "New Game" to begin...');
+        function showNotificationModal(notifications) {
+            const modal = document.getElementById('notificationModal');
+            const list = document.getElementById('notificationList');
+            const title = modal.querySelector('h2');
+            
+            // Filter: Truly critical events stay in the modal. Minor ones go to toasts.
+            const critical = notifications.filter(note => 
+                note.includes('💀') || note.includes('Win') || note.includes('Phase') || note.includes('Night')
+            );
+            
+            const minor = notifications.filter(note => !critical.includes(note));
+            
+            // Show minor as toasts
+            minor.forEach(note => {
+                showToast(note, note.includes('📈') || note.includes('📉') ? 'info' : 'success');
+                addEvent(note, 'discovery');
+            });
 
-        // ===== NEW INTERACTIVE FEATURES =====
+            if (critical.length === 0) return;
 
-        function updateNPCSelects() {
-            if (!gameState) return;
+            title.textContent = '🚨 Critical Updates';
+            list.innerHTML = critical.map(note => {
+                const isUrgent = note.includes('💀');
+                if (isUrgent) addEvent(note, 'urgent');
+                return `<li class="${isUrgent ? 'important' : ''}">${note}</li>`;
+            }).join('');
             
-            const aliveNPCs = getAliveCouncilPersons();
-            
-            // Update council talk select
-            const councilSelect = document.getElementById('councilNpcSelect');
-            if (councilSelect) {
-                councilSelect.innerHTML = '<option value="">Select NPC to talk to...</option>';
-                aliveNPCs.forEach(npc => {
-                    councilSelect.innerHTML += `<option value="${npc.id}">${npc.name}</option>`;
-                });
-            }
-            
-            // Update investigate select
-            const investigateSelect = document.getElementById('investigateNpcSelect');
-            if (investigateSelect) {
-                investigateSelect.innerHTML = '<option value="">Investigate NPC...</option>';
-                aliveNPCs.forEach(npc => {
-                    investigateSelect.innerHTML += `<option value="${npc.id}">${npc.name}</option>`;
-                });
-            }
-            
-            // Update rumor target select
-            const rumorSelect = document.getElementById('rumorTargetSelect');
-            if (rumorSelect) {
-                rumorSelect.innerHTML = '<option value="">Spread rumor about...</option>';
-                aliveNPCs.forEach(npc => {
-                    rumorSelect.innerHTML += `<option value="${npc.id}">${npc.name}</option>`;
-                });
-            }
+            modal.style.display = 'block';
         }
 
         function updatePhaseActions() {
@@ -2196,7 +2335,7 @@
                         <div style="font-weight: bold; color: #ffa500; margin-bottom: 8px;">${actionLabel(action)}</div>
                         ${actionDescription}
                         ${needsTarget ? `<select id="target_${mode}_${action}" class="action-select"><option value="">${selectPlaceholder}</option>${options}</select>` : ''}
-                        <button class="btn" onclick="performRoleAction('${action}', '${mode}')" style="width: 100%; margin-top: 8px;">Use Action</button>
+                        <button class="btn" onclick="performRoleAction('${action}', '${mode}', event)" style="width: 100%; margin-top: 8px;">Use Action</button>
                     </div>
                 `;
             }).join('');
@@ -2247,7 +2386,7 @@
             renderRoleActionControls('nightRoleActionList', actions, 'night');
         }
 
-        async function performRoleAction(action, mode) {
+        async function performRoleAction(action, mode, event = null) {
             const select = document.getElementById(`target_${mode}_${action}`);
             const targetNpcId = select?.value || null;
 
@@ -2257,13 +2396,21 @@
             }
 
             try {
-                await postGameAction('role-action', { action, targetNpcId });
-                addEvent(`✅ ${actionLabel(action)} completed`);
+                const result = await postGameAction('role-action', { action, targetNpcId }, event?.currentTarget);
+                
+                // Show result in modal
+                if (result && result.actionResult) {
+                    showNotificationModal([result.actionResult]);
+                    addEvent(`✅ ${result.actionResult}`, 'action');
+                } else {
+                    addEvent(`✅ ${actionLabel(action)} completed`, 'action');
+                }
+                
                 updateShopkeeperInventory();
                 closeShopkeeperIfHiddenAction(action);
             } catch (error) {
                 console.error('Error performing role action:', error);
-                addEvent(`❌ ${error.message}`);
+                addEvent(`❌ ${error.message}`, 'urgent');
             }
         }
 
@@ -2272,10 +2419,20 @@
             // Shop closes manually via close button, consuming action then
         }
 
-        async function talkToNPC() {
+        async function talkToNPC(event = null) {
+            const btn = event?.currentTarget;
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('btn-loading');
+            }
+
             const npcId = document.getElementById('councilNpcSelect')?.value;
             if (!npcId) {
                 addEvent('⚠️ Please select an NPC to talk to');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                }
                 return;
             }
 
@@ -2294,10 +2451,15 @@
                 const npcName = npc ? npc.name : 'Unknown';
                 
                 showDialogueBox(npcName, normalizedDialogue);
-                addEvent(`💬 Started conversation with ${npcName}`);
+                addEvent(`💬 Started conversation with ${npcName}`, 'action');
             } catch (error) {
                 console.error('Error getting dialogue:', error);
-                addEvent('❌ Failed to start conversation');
+                addEvent('❌ Failed to start conversation', 'urgent');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                }
             }
         }
 
@@ -2614,54 +2776,60 @@
             addEvent('ℹ️ You gather evidence about NPC movements');
         }
 
-        async function doctorHeal() {
+        async function doctorHeal(event = null) {
             const targetId = document.getElementById('healTargetSelect')?.value;
             if (!targetId) {
                 addEvent('⚠️ Select an NPC to heal');
                 return;
             }
-            
+
             const target = gameState.npCs.find(n => n.id === targetId);
             if (target) {
                 try {
-                    await postGameAction('heal', { targetNpcId: targetId });
-                    addEvent(`💉 Healed ${target.name} (+30 health)`);
+                    const result = await postGameAction('heal', { targetNpcId: targetId }, event?.currentTarget);
+                    if (result && result.actionResult) {
+                        showNotificationModal([result.actionResult]);
+                    }
+                    addEvent(`💉 Healed ${target.name} (+30 health)`, 'action');
                 } catch (error) {
                     console.error('Error healing NPC:', error);
-                    addEvent(`❌ ${error.message}`);
+                    addEvent(`❌ ${error.message}`, 'urgent');
                 }
             }
         }
-
-        async function butcherSellMeat() {
+        async function butcherSellMeat(event = null) {
             const meat = (gameState.player.inventory || []).filter(i => i === 'meat').length;
             if (meat === 0) {
                 addEvent('❌ No meat to sell');
                 return;
             }
-            
+
             try {
-                await postGameAction('inventory/remove-all', { item: 'meat' });
-                addEvent(`🥩 Sold ${meat} meat to shopkeeper (identity protected)`);
-                addEvent('💰 Shopkeeper will not reveal the source');
+                const result = await postGameAction('inventory/remove-all', { item: 'meat' }, event?.currentTarget);
+                if (result && result.actionResult) {
+                    showNotificationModal([result.actionResult]);
+                }
+                addEvent(`🥩 Sold ${meat} meat to shopkeeper (identity protected)`, 'action');
             } catch (error) {
                 console.error('Error selling meat:', error);
-                addEvent(`❌ ${error.message}`);
+                addEvent(`❌ ${error.message}`, 'urgent');
             }
         }
-
         function vagabondSellInfo() {
             addEvent('📜 Vagabond: Selling gathered information to shopkeeper');
             addEvent('💰 Information is now available for detectives to purchase');
         }
 
-        async function farmerHarvest() {
+        async function farmerHarvest(event = null) {
             try {
-                await postGameAction('inventory/add', { item: 'crop', quantity: 5 });
-                addEvent('🌾 Harvested 5 crops');
+                const result = await postGameAction('inventory/add', { item: 'crop', quantity: 5 }, event?.currentTarget);
+                if (result && result.actionResult) {
+                    showNotificationModal([result.actionResult]);
+                }
+                addEvent('🌾 Harvested 5 crops', 'action');
             } catch (error) {
                 console.error('Error harvesting crops:', error);
-                addEvent(`❌ ${error.message}`);
+                addEvent(`❌ ${error.message}`, 'urgent');
             }
         }
 
@@ -2807,16 +2975,22 @@
                 : 'They nod and return to the council.';
         }
 
-        async function investigateNPC() {
-            if (!await ensureActionAvailable()) return;
-
-            const npcId = document.getElementById('investigateNpcSelect').value;
-            if (!npcId) {
-                addEvent('⚠️ Please select an NPC to investigate');
-                return;
+        async function investigateNPC(event = null) {
+            const btn = event?.currentTarget;
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('btn-loading');
             }
 
             try {
+                if (!await ensureActionAvailable()) return;
+
+                const npcId = document.getElementById('investigateNpcSelect').value;
+                if (!npcId) {
+                    addEvent('⚠️ Please select an NPC to investigate');
+                    return;
+                }
+
                 const [behaviorResponse, suspiciousResponse] = await Promise.all([
                     fetch(`${API_BASE}/investigation/behavior/${npcId}`),
                     fetch(`${API_BASE}/investigation/suspicious/${npcId}`)
@@ -2829,10 +3003,15 @@
                 const npcName = npc ? npc.name : 'Unknown';
                 
                 showInvestigationResults(npcName, behavior, suspicious);
-                addEvent(`🔍 Investigated ${npcName}'s behavior`);
+                addEvent(`🔍 Investigated ${npcName}'s behavior`, 'action');
             } catch (error) {
                 console.error('Error investigating:', error);
-                addEvent('❌ Investigation failed');
+                addEvent('❌ Investigation failed', 'urgent');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                }
             }
         }
 
@@ -2870,10 +3049,10 @@
             modal.style.display = 'block';
         }
 
-        async function spreadRumor() {
+        async function spreadRumor(event = null) {
             const targetId = document.getElementById('rumorTargetSelect').value;
             const rumorText = document.getElementById('rumorText').value.trim();
-            
+
             if (!targetId || !rumorText) {
                 addEvent('⚠️ Please select a target and enter rumor text');
                 return;
@@ -2881,17 +3060,19 @@
 
             const target = gameState.npCs.find(n => n.id === targetId);
             const targetName = target ? target.name : 'Unknown';
-            
+
             try {
-                await postGameAction('rumor', { targetNpcId: targetId, context: rumorText });
-                addEvent(`📢 Spread rumor about ${targetName}: "${rumorText}"`);
+                const result = await postGameAction('rumor', { targetNpcId: targetId, context: rumorText }, event?.currentTarget);
+                if (result && result.actionResult) {
+                    showNotificationModal([result.actionResult]);
+                }
+                addEvent(`📢 Spread rumor about ${targetName}: "${rumorText}"`, 'action');
                 document.getElementById('rumorText').value = '';
             } catch (error) {
                 console.error('Error spreading rumor:', error);
-                addEvent(`❌ ${error.message}`);
+                addEvent(`❌ ${error.message}`, 'urgent');
             }
         }
-
         async function updateInvestigationSummary() {
             try {
                 const response = await fetch(`${API_BASE}/investigation/summary`);
@@ -3336,30 +3517,50 @@
             }
         }
 
-        async function makeAnnouncement() {
+        async function makeAnnouncement(event = null) {
             if (!requireCouncilPhase()) return;
-            if (!await ensureActionAvailable()) return;
-
-            const input = document.getElementById('announceText');
-            const text = input.value.trim();
-            if (!text) {
-                addEvent('⚠️ Enter an announcement first');
-                return;
+            
+            const btn = event?.currentTarget;
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('btn-loading');
             }
 
-            addCouncilForumMessage({
-                type: 'announcement',
-                speakerId: 'player',
-                speaker: gameState.player?.name || 'Player',
-                text
-            });
-            input.value = '';
-            addEvent('📢 You addressed the council');
-            maybeAddNpcForumResponse('announcement');
+            try {
+                if (!await ensureActionAvailable()) return;
+
+                const input = document.getElementById('announceText');
+                const text = input.value.trim();
+                if (!text) {
+                    addEvent('⚠️ Enter an announcement first');
+                    return;
+                }
+
+                addCouncilForumMessage({
+                    type: 'announcement',
+                    speakerId: 'player',
+                    speaker: gameState.player?.name || 'Player',
+                    text
+                });
+                input.value = '';
+                addEvent('📢 You addressed the council', 'action');
+                maybeAddNpcForumResponse('announcement');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                }
+            }
         }
 
-        async function makeAccusation() {
+        async function makeAccusation(event = null) {
             if (!requireCouncilPhase()) return;
+
+            const btn = event?.currentTarget;
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('btn-loading');
+            }
 
             const targetId = document.getElementById('accuseTarget').value;
             const reasonInput = document.getElementById('accuseReason');
@@ -3368,18 +3569,23 @@
 
             if (!targetId || !reason) {
                 addEvent('⚠️ Choose a person and enter an accusation reason');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                }
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/game/council/player-action`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetNpcId: targetId, reason, actionType: 'accusation' })
-                });
-                if (!response.ok) throw new Error(await response.text());
-                gameState = await response.json();
-                updateUI();
+                const result = await postGameAction('council/player-action', { 
+                    targetNpcId: targetId, 
+                    reason, 
+                    actionType: 'accusation' 
+                }, btn);
+                
+                if (result && result.actionResult) {
+                    showNotificationModal([result.actionResult]);
+                }
 
                 addCouncilForumMessage({
                     type: 'accusation',
@@ -3389,17 +3595,23 @@
                     text: reason
                 });
                 reasonInput.value = '';
-                addEvent(`⚖️ You accused ${targetName}`);
+                addEvent(`⚖️ You accused ${targetName}`, 'action');
                 updateInvestigationSummary();
                 await requestAlibi(targetId, reason);
                 await maybeAddNpcForumResponse('accusation', targetId);
             } catch (error) {
-                addEvent(`❌ ${error.message}`);
+                addEvent(`❌ ${error.message}`, 'urgent');
             }
         }
 
-        async function raiseSuspicion() {
+        async function raiseSuspicion(event = null) {
             if (!requireCouncilPhase()) return;
+
+            const btn = event?.currentTarget;
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('btn-loading');
+            }
 
             const targetId = document.getElementById('suspicionTarget').value;
             const reasonInput = document.getElementById('suspicionReason');
@@ -3408,18 +3620,23 @@
 
             if (!targetId || !reason) {
                 addEvent('⚠️ Choose a person and describe the suspicious behavior');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                }
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/game/council/player-action`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetNpcId: targetId, reason, actionType: 'suspicion' })
-                });
-                if (!response.ok) throw new Error(await response.text());
-                gameState = await response.json();
-                updateUI();
+                const result = await postGameAction('council/player-action', { 
+                    targetNpcId: targetId, 
+                    reason, 
+                    actionType: 'suspicion' 
+                }, btn);
+                
+                if (result && result.actionResult) {
+                    showNotificationModal([result.actionResult]);
+                }
 
                 addCouncilForumMessage({
                     type: 'suspicion',
@@ -3429,11 +3646,11 @@
                     text: reason
                 });
                 reasonInput.value = '';
-                addEvent(`🔍 You raised suspicion about ${targetName}`);
+                addEvent(`🔍 You raised suspicion about ${targetName}`, 'action');
                 updateInvestigationSummary();
                 await maybeAddNpcForumResponse('suspicion', targetId);
             } catch (error) {
-                addEvent(`❌ ${error.message}`);
+                addEvent(`❌ ${error.message}`, 'urgent');
             }
         }
 

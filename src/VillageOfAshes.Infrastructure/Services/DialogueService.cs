@@ -162,7 +162,7 @@ public class DialogueService : IDialogueService
         var isCouncil = gameState.CurrentPhase == GamePhase.VillageCouncil;
         var random = new Random();
 
-        // Add options based on NPC's known facts
+        // Add options based on NPC's known facts - Interactive Information Handling
         foreach (var fact in npc.KnownFacts.Take(2))
         {
             options.Add(new DialogueOption
@@ -170,8 +170,8 @@ public class DialogueService : IDialogueService
                 Id = $"fact_{Guid.NewGuid().ToString().Substring(0, 4)}",
                 Text = $"What can you tell me about: {fact}?",
                 NpcResponse = isCouncil 
-                    ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)]
-                    : $"I've already said what I know about that. {fact}",
+                    ? $"That is already in the record. {fact}"
+                    : $"I've already said what I know about that. {fact}. Does it mean something more to you?",
                 Effects = new DialogueEffects { Trust = 5, Suspicion = -2 }
             });
         }
@@ -187,11 +187,25 @@ public class DialogueService : IDialogueService
                     Id = $"rumor_{Guid.NewGuid().ToString().Substring(0, 4)}",
                     Text = $"I heard something about {target.Name} being {rumor.Context}. Is it true?",
                     NpcResponse = isCouncil 
-                        ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)]
-                        : $"Rumors are dangerous, but they often have a seed of truth. {rumor.Context} is what I heard too.",
+                        ? $"Rumors have no place in the formal record, but... {rumor.Context} is a pattern I've noted too."
+                        : $"Rumors are dangerous, but they often have a seed of truth. {rumor.Context} is what I heard too. Why are you asking?",
                     Effects = new DialogueEffects { Trust = 3, Suspicion = 5, SpreadRumor = true }
                 });
             }
+        }
+
+        // New Interactive Feature: Share Player's Knowledge
+        var player = gameState.Player;
+        if (player != null && player.KnownFacts.Any() && context == DialogueContext.Trusting)
+        {
+            var playerFact = player.KnownFacts.Last();
+            options.Add(new DialogueOption
+            {
+                Id = "share_fact",
+                Text = $"I know something you don't: {playerFact}",
+                NpcResponse = $"You're sharing this with me? {playerFact}... that changes how I see the village. Thank you.",
+                Effects = new DialogueEffects { Trust = 15, Suspicion = -10 }
+            });
         }
 
         switch (context)
@@ -202,7 +216,7 @@ public class DialogueService : IDialogueService
                     Id = "sus_accuse",
                     Text = "I think you're the one behind these murders. What do you have to say for yourself?",
                     NpcResponse = isCouncil 
-                        ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)]
+                        ? $"A public accusation! {_npcDecisions.GenerateAlibiLine(npc, gameState, "Public confrontation")}"
                         : _npcDecisions.GenerateAlibiLine(npc, gameState, "Direct confrontation"),
                     Effects = new DialogueEffects { Trust = -25, Suspicion = 30, Fear = 10 }
                 });
@@ -210,7 +224,6 @@ public class DialogueService : IDialogueService
                 // Player Role Claims
                 if (!isCouncil)
                 {
-                    var player = gameState.Player;
                     if (player != null)
                     {
                         // Truthful claim (if applicable)
@@ -218,7 +231,7 @@ public class DialogueService : IDialogueService
                         {
                             Id = "claim_truth",
                             Text = $"I am the {player.Role}. My work in this village is transparent.",
-                            NpcResponse = "Is that so? Many people claim to be doing their jobs while the shadows move.",
+                            NpcResponse = $"The {player.Role}, you say? If you're telling the truth, we should be allies. If not...",
                             Effects = new DialogueEffects { Trust = 10, Suspicion = -10 }
                         });
 
@@ -227,16 +240,8 @@ public class DialogueService : IDialogueService
                         {
                             Id = "claim_lie_doctor",
                             Text = "I am a Doctor. I've been helping the sick, not causing harm.",
-                            NpcResponse = player.Role == RoleType.Doctor ? "I hope you can prove that with more than words." : "A doctor? You don't look like you've spent much time with the sick lately.",
+                            NpcResponse = player.Role == RoleType.Doctor ? "I see your hands are steady. I believe you." : "A doctor? I haven't seen you near the infirmary once.",
                             Effects = player.Role == RoleType.Doctor ? new DialogueEffects { Trust = 15, Suspicion = -15 } : new DialogueEffects { Trust = -5, Suspicion = 5 }
-                        });
-
-                        options.Add(new DialogueOption
-                        {
-                            Id = "claim_lie_villager",
-                            Text = "I'm just a simple villager trying to get by. I have no reason to do this.",
-                            NpcResponse = "Simple villagers are the first to be suspected when things go wrong.",
-                            Effects = new DialogueEffects { Trust = 5, Suspicion = -5 }
                         });
                     }
                 }
@@ -245,15 +250,8 @@ public class DialogueService : IDialogueService
                 {
                     Id = "sus_1",
                     Text = "I stayed inside my house all night.",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "I hope that's true. For your sake.",
+                    NpcResponse = isCouncil ? "A common claim. Let the record show you were at home." : "I hope that's true. For your sake. Many people say they were home when they weren't.",
                     Effects = new DialogueEffects { Trust = 5, Suspicion = -10 }
-                });
-                options.Add(new DialogueOption
-                {
-                    Id = "sus_2",
-                    Text = "I was walking around. I couldn't sleep.",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "A lot of people seem to be having trouble sleeping lately. It's a dangerous habit.",
-                    Effects = new DialogueEffects { Suspicion = 5, Trust = 3 }
                 });
                 break;
 
@@ -262,14 +260,14 @@ public class DialogueService : IDialogueService
                 {
                     Id = "fear_1",
                     Text = "We'll get through this together. Stay calm.",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "I want to believe you. I really do.",
+                    NpcResponse = isCouncil ? "Calm is what we need. Thank you." : "I want to believe you. I really do. But the village feels like it's dying.",
                     Effects = new DialogueEffects { Trust = 15, Fear = -10 }
                 });
                 options.Add(new DialogueOption
                 {
                     Id = "fear_2",
                     Text = "You should be afraid. We all should.",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "You're right... there's nowhere safe left.",
+                    NpcResponse = isCouncil ? "Fear is not helpful here. Speak only facts." : "You're right... there's nowhere safe left. I can see it in your eyes too.",
                     Effects = new DialogueEffects { Fear = 15, Trust = -5 }
                 });
                 break;
@@ -279,14 +277,14 @@ public class DialogueService : IDialogueService
                 {
                     Id = "trust_1",
                     Text = "Thank you for trusting me. What did you see?",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "I saw someone near the well. They were carrying something heavy...",
+                    NpcResponse = isCouncil ? "I'll tell the council what I saw. I saw someone near the well last night." : "I saw someone near the well. They were carrying something heavy... it looked like a body, or maybe just a large sack.",
                     Effects = new DialogueEffects { Trust = 15 }
                 });
                 options.Add(new DialogueOption
                 {
                     Id = "trust_3",
                     Text = "Tell me everything you know.",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : BuildTrustedReveal(npc, gameState),
+                    NpcResponse = isCouncil ? "The formal record already contains my statements." : BuildTrustedReveal(npc, gameState),
                     Effects = new DialogueEffects { Trust = 10, Suspicion = 3 }
                 });
                 break;
@@ -296,15 +294,8 @@ public class DialogueService : IDialogueService
                 {
                     Id = "agg_1",
                     Text = "Are you threatening me?",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "Take it however you want. Just stay out of my way.",
+                    NpcResponse = isCouncil ? "This is a council of law, not threats. Order!" : "Take it however you want. Just stay out of my way, or you'll regret it.",
                     Effects = new DialogueEffects { Suspicion = 15, Trust = -10, Fear = 5 }
-                });
-                options.Add(new DialogueOption
-                {
-                    Id = "agg_3",
-                    Text = "Maybe you're the one we should be watching.",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "Try it. See what happens when you poke the wrong person.",
-                    Effects = new DialogueEffects { Suspicion = 20, Trust = -15, SpreadRumor = true }
                 });
                 break;
 
@@ -313,14 +304,14 @@ public class DialogueService : IDialogueService
                 {
                     Id = "neutral_1",
                     Text = "How are you holding up?",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "Surviving. That's all any of us can do right now.",
+                    NpcResponse = isCouncil ? "Surviving. Like the rest of the village." : "Surviving. That's all any of us can do right now. Every day feels shorter than the last.",
                     Effects = new DialogueEffects { Trust = 5 }
                 });
                 options.Add(new DialogueOption
                 {
                     Id = "neutral_2",
                     Text = "Have you seen anything unusual lately?",
-                    NpcResponse = isCouncil ? DialoguePools.PassiveResponses[random.Next(DialoguePools.PassiveResponses.Count)] : "Everything feels unusual. The air, the shadows... it's all wrong.",
+                    NpcResponse = isCouncil ? "Everything is unusual. Speak specifically." : "Everything feels unusual. The air, the shadows... it's all wrong. I keep seeing things out of the corner of my eye.",
                     Effects = new DialogueEffects { Suspicion = 3, Trust = 3 }
                 });
                 break;
@@ -328,6 +319,7 @@ public class DialogueService : IDialogueService
 
         return options;
     }
+
 
     private static string BuildTrustedReveal(NPC npc, GameState gameState)
     {

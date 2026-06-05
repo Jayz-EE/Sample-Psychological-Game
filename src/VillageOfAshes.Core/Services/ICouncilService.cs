@@ -23,6 +23,9 @@ public class CouncilSession
     public string? BurnedNpcId { get; set; }
     public RoleType? RevealedRole { get; set; }
     public bool RoleRevealTampered { get; set; }
+    
+    // Social Context: Tracks the flow of conversation for smarter NPC reactions
+    public List<CouncilStatement> RecentDiscourse { get; set; } = new();
 }
 
 public class CouncilStatement
@@ -30,7 +33,9 @@ public class CouncilStatement
     public string NpcId { get; set; } = string.Empty;
     public string Statement { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
+    public string? TargetNpcId { get; set; } // Who is this statement directed at?
 }
+
 
 public class CouncilOutcome
 {

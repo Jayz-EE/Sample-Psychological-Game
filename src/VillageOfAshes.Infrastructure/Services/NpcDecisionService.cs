@@ -561,6 +561,47 @@ public class NpcDecisionService : INpcDecisionService
         }
     }
 
+    public string? GenerateCouncilReaction(NPC npc, GameState game, List<CouncilStatement> recentDiscourse)
+    {
+        var last = recentDiscourse.LastOrDefault();
+        if (last == null) return null;
+
+        var tone = GetRoleTone(npc.Role);
+        var speaker = game.NPCs.FirstOrDefault(n => n.Id == last.NpcId) ?? (game.Player?.Id == last.NpcId ? game.Player : null);
+        var statement = last.Statement.ToLower();
+
+        // 1. Direct Rebuttal if accused
+        if (last.TargetNpcId == npc.Id && (statement.Contains("found") || statement.Contains("suspicious") || statement.Contains("killer")))
+        {
+            return $"{tone} {GenerateAlibiLine(npc, game, last.Statement)}";
+        }
+
+        // 2. Support Ally / Friend
+        if (speaker != null && npc.Trust.GetValueOrDefault(speaker.Id, 50) > 75 && _random.Next(100) < 40)
+        {
+            return $"{tone} I've known {speaker.Name} for a long time. They're not the kind of person to do what's being suggested.";
+        }
+
+        // 3. React to Fear/Panic
+        if (statement.Contains("killing") || statement.Contains("dead") || statement.Contains("monster"))
+        {
+            return npc.Alignment switch
+            {
+                Alignment.Good => $"{tone} We must not let panic divide us. That is exactly what the evil among us wants.",
+                Alignment.Evil => $"{tone} The village is rotting. Maybe it's time we all admitted how dangerous it has become.",
+                _ => $"{tone} Fear is spread as easily as disease. We should focus on what we actually saw."
+            };
+        }
+
+        // 4. Doubt Accuser
+        if (last.TargetNpcId != null && npc.Trust.GetValueOrDefault(last.NpcId, 50) < 40 && _random.Next(100) < 30)
+        {
+            return $"{tone} Why are you so quick to point fingers, {speaker?.Name ?? "friend"}? Perhaps you're trying to hide your own tracks.";
+        }
+
+        return null;
+    }
+
     private int ScoreTarget(NPC actor, NPC target, GameState game, NpcTargetIntent intent)
     {
         var suspicion = actor.Suspicion.GetValueOrDefault(target.Id, 0);

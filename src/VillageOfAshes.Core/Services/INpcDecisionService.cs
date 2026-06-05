@@ -19,10 +19,12 @@ public interface INpcDecisionService
     DialogueContext ResolveDialogueContext(NPC npc, GameState game, string observerId = "player");
     void RefreshNpcSuspicion(GameState game, NPC observer, NPC target);
     void RefreshAllNpcSuspicions(GameState game);
-    string GenerateCouncilReaction(NPC npc, GameState game, string trigger, string? targetNpcId = null);
+    string? GenerateDynamicDialogueLine(NPC npc, GameState game, DialogueContext context);
+    string? GenerateCouncilReaction(NPC npc, GameState game, List<CouncilStatement> recentDiscourse);
     string GenerateAlibiLine(NPC npc, GameState game, string accusationReason);
     string? ChooseDayAction(NPC npc, GameState game);
-    string? GenerateDynamicDialogueLine(NPC npc, GameState game, DialogueContext context);
+
+
     void InitializeNpcGoals(NPC npc, GameState game);
     void AnalyzeStatement(GameState game, string speakerId, string statement);
 }
