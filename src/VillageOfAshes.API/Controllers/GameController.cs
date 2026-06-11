@@ -63,11 +63,12 @@ public class GameController : ControllerBase
     }
 
     [HttpGet("state")]
-    public ActionResult<object> GetGameState()
+    public async Task<ActionResult<object>> GetGameState()
     {
         if (_currentGame == null)
             return NotFound("No active game");
-            
+
+        await EnsurePhaseStateAsync(_currentGame);
         _progressionService.CheckWinConditions(_currentGame);
         return Ok(ToClientGameState(_currentGame));
     }
@@ -101,6 +102,14 @@ public class GameController : ControllerBase
         game.CurrentTime = _timeManager.AdvanceTime(game.CurrentTime, minutes);
         game.CurrentDay += daysElapsed;
 
+        if (daysElapsed > 0)
+        {
+            foreach (var npc in game.NPCs.Concat(game.Player == null ? Enumerable.Empty<NPC>() : new[] { game.Player }))
+            {
+                npc.BehaviorFlags.Remove("HarvestedToday");
+            }
+        }
+
         if (shouldRunNight)
         {
             var result = await _nightSimulation.ExecuteNightPhase(game);
@@ -119,6 +128,40 @@ public class GameController : ControllerBase
         
         _progressionService.UpdateFactionAlignments(game);
         _progressionService.CheckWinConditions(game);
+    }
+
+    private async Task EnsurePhaseStateAsync(GameState game)
+    {
+        var previousPhase = game.CurrentPhase;
+        var actualPhase = _timeManager.GetCurrentPhase(game.CurrentTime);
+
+        if (previousPhase != actualPhase)
+            game.CurrentPhase = actualPhase;
+
+        if (game.Status != GameStatus.InProgress)
+            return;
+
+        if (actualPhase == GamePhase.VillageCouncil && game.ActiveCouncil == null)
+        {
+            if (previousPhase != GamePhase.VillageCouncil)
+            {
+                ResetPhaseActionCounts(game);
+                await OnPhaseEntered(game, previousPhase, GamePhase.VillageCouncil);
+            }
+            else
+            {
+                _npcDecisions.RefreshAllNpcSuspicions(game);
+                game.ActiveCouncil = await _councilService.StartCouncilSession(game);
+                foreach (var statement in game.ActiveCouncil.Statements.ToList())
+                {
+                    var speaker = game.NPCs.FirstOrDefault(n => n.Id == statement.NpcId);
+                    game.RecentEvents.Add($"Council Day {game.CurrentDay}: {speaker?.Name ?? "Villager"} — {statement.Statement}");
+                    _npcDecisions.AnalyzeStatement(game, statement.NpcId, statement.Statement);
+                }
+            }
+
+            game.CurrentPhase = GamePhase.VillageCouncil;
+        }
     }
 
     private async Task OnPhaseEntered(GameState game, GamePhase previousPhase, GamePhase newPhase)
@@ -246,6 +289,7 @@ public class GameController : ControllerBase
             return BadRequest("Evil actions cannot target evil-aligned characters.");
 
         var resultMessage = ApplyRoleAction(_currentGame, actor, request.Action.Trim(), target, request.TargetNpcId);
+        _progressionService.UpdateFactionAlignments(_currentGame);
         _progressionService.CheckWinConditions(_currentGame);
         SyncSharedState();
         
@@ -455,10 +499,12 @@ public class GameController : ControllerBase
     }
 
     [HttpGet("auto-time/should-advance")]
-    public ActionResult<object> ShouldAutoAdvance()
+    public async Task<ActionResult<object>> ShouldAutoAdvance()
     {
         if (_currentGame == null)
             return NotFound("No active game");
+
+        await EnsurePhaseStateAsync(_currentGame);
 
         if (!_currentGame.AutoTimeEnabled || _currentGame.Status != GameStatus.InProgress)
             return Ok(new { shouldAdvance = false, reason = "Auto-time disabled or game over" });
@@ -486,6 +532,8 @@ public class GameController : ControllerBase
 
         if (!_currentGame.AutoTimeEnabled)
             return BadRequest("Auto-time is not enabled");
+
+        await EnsurePhaseStateAsync(_currentGame);
 
         var previousAliveCount = _currentGame.NPCs.Count(n => n.Status == NPCStatus.Alive);
         
@@ -1248,9 +1296,15 @@ public class GameController : ControllerBase
                 AddEvidence(EvidenceType.DamagedCrops, 10); 
                 resultMessage = "You spent the day working the fields. Future harvests look promising.";
                 break;
-            case "HarvestCrops": 
-                actor.Inventory.AddRange(Enumerable.Repeat("crop", 5)); 
-                AdjustWorld(food: 10, economy: 2); 
+            case "HarvestCrops":
+                if (actor.BehaviorFlags.Contains("HarvestedToday"))
+                {
+                    resultMessage = "You have already harvested today. The fields need time to recover.";
+                    break;
+                }
+                actor.Inventory.AddRange(Enumerable.Repeat("crop", 5));
+                actor.BehaviorFlags.Add("HarvestedToday");
+                AdjustWorld(food: 10, economy: 2);
                 resultMessage = "You harvested a bountiful yield of crops. This will keep the village fed.";
                 break;
             case "SellProduce": 

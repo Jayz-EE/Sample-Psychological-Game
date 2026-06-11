@@ -2188,16 +2188,18 @@
                     playerAlignment;
                 
                 const isNeutral = playerAlignmentValue == 2 || playerAlignmentValue == 3 || playerAlignmentValue == 4;
-                const isGoalCompleted = gameState.player?.isGoalCompleted || gameState.player?.IsGoalCompleted;
+                // Robust check for goal completion
+                const isGoalCompleted = (gameState.player?.isGoalCompleted === true || gameState.player?.IsGoalCompleted === true);
                 
                 document.getElementById('neutralStrategicActions').style.display = (isNeutral && isGoalCompleted) ? 'block' : 'none';
                 document.getElementById('factionOptions').style.display = 'none';
 
                 // Show investigation action only for investigative roles
-                // Detective (0), Prosecutor (7), Scholar (13), Voyeur (15)
+                // Investigative: Detective (0), Doctor (1), Priest (6), Prosecutor (7), Scholar (13), Voyeur (15), Hunter (12)
+                // Exclude: Butcher (2), Thief (14), Shopkeeper (5), Prankster (16), etc.
                 const playerRole = gameState.player?.role;
                 const playerRoleValue = Number(playerRole);
-                const isInvestigator = [0, 7, 13, 15].includes(playerRoleValue);
+                const isInvestigator = [0, 1, 6, 7, 12, 13, 15].includes(playerRoleValue);
                 document.getElementById('generalInvestigationAction').style.display = isInvestigator ? 'block' : 'none';
             }
             // Phase 0 = Night Simulation (9 PM - 6 AM)
